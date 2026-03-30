@@ -1,0 +1,9 @@
+using System.ComponentModel.DataAnnotations;
+
+public class CreateInstructorDto
+{
+    [Required]
+    [MinLength(2)]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
+}
