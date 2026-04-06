@@ -166,3 +166,4 @@ E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\Hangfire.Core.dll
 E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\Hangfire.MemoryStorage.dll
 E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\Hangfire.NetCore.dll
 E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\Newtonsoft.Json.dll
+E:\Uni\Web\CourseManagementAPI\obj\Debug\net8.0\CourseManagementAPI.sourcelink.json
