@@ -11,7 +11,6 @@ This project keeps the existing domain models and implements the required Web En
 - Create, Update, and Response DTOs
 - Data Annotation validation on DTOs
 - JWT authentication
-- Refresh token authentication flow (issue, rotate, revoke)
 - Role-based authorization
 - LINQ Select projections into response DTOs
 - AsNoTracking on read-only queries
@@ -49,25 +48,21 @@ This project keeps the existing domain models and implements the required Web En
 
 - JWT login endpoint: POST /api/auth/login
 - Register endpoint: POST /api/auth/register
-- Refresh endpoint: POST /api/auth/refresh
 - Revoke endpoint: POST /api/auth/revoke
-- Token must be sent in request header:
+
+- Access token is returned as an HttpOnly cookie named access_token.
+- APIs still support Authorization header bearer tokens when needed.
+
+- If token is sent in request header:
 
 Authorization: Bearer <jwt-token>
 
 - Role-based endpoint protection is implemented using Authorize(Roles = ...)
   - Example roles: Admin, Instructor, User
 
-Refresh token behavior:
-
-- Refresh tokens are stored in the database as SHA-256 hashes (not plaintext).
-- Each refresh request rotates to a new refresh token and revokes the previous token.
-- Revoked or expired refresh tokens are rejected.
-
 ## Hangfire
 
 - Dashboard path: /hangfire
-- Recurring job: daily cleanup of expired/revoked refresh tokens
 
 ## Why HTTP-only Cookies Are Commonly Used
 

@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly JwtSettings _jwtSettings;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IOptions<JwtSettings> jwtOptions)
     {
         _authService = authService;
+        _jwtSettings = jwtOptions.Value;
     }
 
     [AllowAnonymous]
@@ -19,11 +22,12 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var tokens = await _authService.LoginAsync(dto);
-        if (tokens == null)
+        var accessToken = await _authService.LoginAsync(dto);
+        if (accessToken == null)
             return Unauthorized();
 
-        return Ok(tokens);
+        SetAuthCookie(accessToken);
+        return Ok("Login successful");
     }
 
     [AllowAnonymous]
@@ -42,31 +46,40 @@ public class AuthController : ControllerBase
         return Ok("User Registered");
     }
 
-    [AllowAnonymous]
-    [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh(RefreshTokenRequestDto dto)
+    [Authorize]
+    [HttpPost("revoke")]
+    public async Task<IActionResult> Revoke()
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var revoked = await _authService.RevokeAsync();
+        if (!revoked)
+            return Unauthorized();
 
-        var tokens = await _authService.RefreshAsync(dto.RefreshToken);
-        if (tokens == null)
-            return Unauthorized("Invalid or expired refresh token");
-
-        return Ok(tokens);
+        DeleteAuthCookie();
+        return Ok("Token revoked");
     }
 
-    [AllowAnonymous]
-    [HttpPost("revoke")]
-    public async Task<IActionResult> Revoke(RevokeTokenRequestDto dto)
+    private void SetAuthCookie(string accessToken)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var options = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+            Path = "/"
+        };
 
-        var revoked = await _authService.RevokeAsync(dto.RefreshToken);
-        if (!revoked)
-            return NotFound("Refresh token not found or already inactive");
+        Response.Cookies.Append("access_token", accessToken, options);
+    }
 
-        return Ok("Refresh token revoked");
+    private void DeleteAuthCookie()
+    {
+        Response.Cookies.Delete("access_token", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Path = "/"
+        });
     }
 }

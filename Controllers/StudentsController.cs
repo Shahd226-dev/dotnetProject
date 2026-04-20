@@ -34,7 +34,16 @@ public class StudentsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var created = await _service.CreateAsync(dto);
+        StudentResponseDto created;
+        try
+        {
+            created = await _service.CreateAsync(dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
@@ -45,7 +54,16 @@ public class StudentsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var updated = await _service.UpdateAsync(id, dto);
+        StudentResponseDto? updated;
+        try
+        {
+            updated = await _service.UpdateAsync(id, dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
         if (updated == null) return NotFound();
         return Ok(updated);
     }

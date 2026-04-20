@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +31,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IInstructorService, InstructorService>();
-builder.Services.AddScoped<ITokenCleanupJob, TokenCleanupJob>();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddHangfire(config => config
     .UseSimpleAssemblyNameTypeSerializer()
@@ -49,6 +51,39 @@ builder.Services.AddAuthentication("Bearer")
             ValidateAudience = true,
             ValidAudience = jwtSettings.Audience,
             ValidateLifetime = true
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrWhiteSpace(context.Token) &&
+                    context.Request.Cookies.TryGetValue("access_token", out var cookieToken))
+                {
+                    context.Token = cookieToken;
+                }
+
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = async context =>
+            {
+                var username = context.Principal?.FindFirstValue(ClaimTypes.Name);
+                var tokenVersionRaw = context.Principal?.FindFirst("token_version")?.Value;
+
+                if (string.IsNullOrWhiteSpace(username) || !int.TryParse(tokenVersionRaw, out var tokenVersion))
+                {
+                    context.Fail("Invalid token claims.");
+                    return;
+                }
+
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var isValid = await dbContext.Users
+                    .AsNoTracking()
+                    .AnyAsync(u => u.Username == username && u.TokenVersion == tokenVersion);
+
+                if (!isValid)
+                    context.Fail("Token has been revoked.");
+            }
         };
     });
 
@@ -100,10 +135,5 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     dbContext.Database.Migrate();
 }
-
-RecurringJob.AddOrUpdate<ITokenCleanupJob>(
-    "refresh-token-cleanup",
-    job => job.CleanupExpiredTokensAsync(),
-    Cron.Daily);
 
 app.Run();

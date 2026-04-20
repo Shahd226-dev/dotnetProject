@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -10,18 +9,16 @@ public class AuthService : IAuthService
 {
     private readonly AppDbContext _context;
     private readonly JwtSettings _jwtSettings;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AuthService(AppDbContext context, IOptions<JwtSettings> jwtOptions)
+    public AuthService(
+        AppDbContext context,
+        IOptions<JwtSettings> jwtOptions,
+        IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
         _jwtSettings = jwtOptions.Value;
-    }
-
-    public async Task<User?> GetByUsernameAsync(string username)
-    {
-        return await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Username == username);
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<bool> UsernameExistsAsync(string username)
@@ -37,7 +34,8 @@ public class AuthService : IAuthService
         {
             Username = dto.Username,
             PasswordHash = PasswordHasher.Hash(dto.Password),
-            Role = string.IsNullOrWhiteSpace(dto.Role) ? RoleConstants.User : dto.Role
+            Role = string.IsNullOrWhiteSpace(dto.Role) ? RoleConstants.User : dto.Role,
+            TokenVersion = 0
         };
 
         _context.Users.Add(user);
@@ -46,7 +44,7 @@ public class AuthService : IAuthService
         return user;
     }
 
-    public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
+    public async Task<string?> LoginAsync(LoginDto dto)
     {
         var user = await _context.Users
             .AsNoTracking()
@@ -58,79 +56,33 @@ public class AuthService : IAuthService
         if (user.PasswordHash != PasswordHasher.Hash(dto.Password))
             return null;
 
-        var refreshTokenRaw = GenerateSecureRefreshToken();
-        var refreshTokenHash = HashToken(refreshTokenRaw);
-
-        _context.RefreshTokens.Add(new RefreshToken
-        {
-            UserId = user.Id,
-            TokenHash = refreshTokenHash,
-            CreatedAtUtc = DateTime.UtcNow,
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenDays)
-        });
-
-        await _context.SaveChangesAsync();
-
-        return new AuthResponseDto
-        {
-            AccessToken = GenerateToken(user),
-            RefreshToken = refreshTokenRaw
-        };
+        return GenerateToken(user);
     }
 
-    public async Task<AuthResponseDto?> RefreshAsync(string refreshToken)
+    public async Task<bool> RevokeAsync()
     {
-        var providedHash = HashToken(refreshToken);
-        var existing = await _context.RefreshTokens
-            .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.TokenHash == providedHash);
-
-        if (existing == null || !existing.IsActive)
-            return null;
-
-        var newRefreshTokenRaw = GenerateSecureRefreshToken();
-        var newRefreshTokenHash = HashToken(newRefreshTokenRaw);
-
-        existing.RevokedAtUtc = DateTime.UtcNow;
-        existing.ReplacedByTokenHash = newRefreshTokenHash;
-
-        _context.RefreshTokens.Add(new RefreshToken
-        {
-            UserId = existing.UserId,
-            TokenHash = newRefreshTokenHash,
-            CreatedAtUtc = DateTime.UtcNow,
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenDays)
-        });
-
-        await _context.SaveChangesAsync();
-
-        return new AuthResponseDto
-        {
-            AccessToken = GenerateToken(existing.User),
-            RefreshToken = newRefreshTokenRaw
-        };
-    }
-
-    public async Task<bool> RevokeAsync(string refreshToken)
-    {
-        var providedHash = HashToken(refreshToken);
-        var existing = await _context.RefreshTokens
-            .FirstOrDefaultAsync(t => t.TokenHash == providedHash);
-
-        if (existing == null || !existing.IsActive)
+        var username = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Name)?.Value;
+        if (string.IsNullOrWhiteSpace(username))
             return false;
 
-        existing.RevokedAtUtc = DateTime.UtcNow;
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == username);
+
+        if (user == null)
+            return false;
+
+        user.TokenVersion += 1;
         await _context.SaveChangesAsync();
         return true;
     }
 
-    public string GenerateToken(User user)
+    private string GenerateToken(User user)
     {
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim("token_version", user.TokenVersion.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
@@ -144,17 +96,5 @@ public class AuthService : IAuthService
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private static string GenerateSecureRefreshToken()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(64);
-        return Convert.ToBase64String(bytes);
-    }
-
-    private static string HashToken(string token)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-        return Convert.ToBase64String(bytes);
     }
 }

@@ -20,7 +20,15 @@ public class EnrollmentsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        await _service.EnrollAsync(dto);
+        try
+        {
+            await _service.EnrollAsync(dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
         return Ok("Student Enrolled");
     }
 }

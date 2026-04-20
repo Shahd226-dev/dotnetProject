@@ -16,17 +16,43 @@ public class StudentService : IStudentService
             .Select(s => new StudentResponseDto
             {
                 Id = s.Id,
-                Name = s.Name
+                Name = s.Name,
+                UserId = s.UserId
             })
             .ToListAsync();
     }
 
     public async Task<StudentResponseDto> CreateAsync(CreateStudentDto dto)
-    { 
+    {
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == dto.UserId);
+
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        if (!string.Equals(user.Role, RoleConstants.User, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Student must be linked to a user with role 'User'.");
+
+        var linkedStudentExists = await _context.Students
+            .AsNoTracking()
+            .AnyAsync(s => s.UserId == dto.UserId);
+
+        if (linkedStudentExists)
+            throw new InvalidOperationException("This user is already linked to another student.");
+
+        var linkedInstructorExists = await _context.Instructors
+            .AsNoTracking()
+            .AnyAsync(i => i.UserId == dto.UserId);
+
+        if (linkedInstructorExists)
+            throw new InvalidOperationException("This user is already linked to an instructor.");
+
         var student = new Student
         {
             Name = dto.Name,
-            Email = dto.Email
+            Email = dto.Email,
+            UserId = dto.UserId
         };
 
         _context.Students.Add(student);
@@ -35,7 +61,8 @@ public class StudentService : IStudentService
         return new StudentResponseDto
         {
             Id = student.Id,
-            Name = student.Name
+            Name = student.Name,
+            UserId = student.UserId
         };
     }
 
@@ -47,7 +74,8 @@ public class StudentService : IStudentService
             .Select(s => new StudentResponseDto
             {
                 Id = s.Id,
-                Name = s.Name
+                Name = s.Name,
+                UserId = s.UserId
             })
             .FirstOrDefaultAsync();
     }
@@ -57,13 +85,39 @@ public class StudentService : IStudentService
         var student = await _context.Students.FindAsync(id);
         if (student == null) return null;
 
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == dto.UserId);
+
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        if (!string.Equals(user.Role, RoleConstants.User, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Student must be linked to a user with role 'User'.");
+
+        var linkedStudentExists = await _context.Students
+            .AsNoTracking()
+            .AnyAsync(s => s.UserId == dto.UserId && s.Id != id);
+
+        if (linkedStudentExists)
+            throw new InvalidOperationException("This user is already linked to another student.");
+
+        var linkedInstructorExists = await _context.Instructors
+            .AsNoTracking()
+            .AnyAsync(i => i.UserId == dto.UserId);
+
+        if (linkedInstructorExists)
+            throw new InvalidOperationException("This user is already linked to an instructor.");
+
         student.Name = dto.Name;
+        student.UserId = dto.UserId;
         await _context.SaveChangesAsync();
 
         return new StudentResponseDto
         {
             Id = student.Id,
-            Name = student.Name
+            Name = student.Name,
+            UserId = student.UserId
         };
     }
 }

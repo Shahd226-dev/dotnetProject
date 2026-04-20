@@ -4,5 +4,7 @@ public class User
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
-    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public int TokenVersion { get; set; }
+    public Student? StudentProfile { get; set; }
+    public Instructor? InstructorProfile { get; set; }
 }

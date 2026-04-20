@@ -5,22 +5,16 @@
 - POST /api/auth/login
   - Access: Anonymous
   - Body: LoginDto
-  - Returns: access token + refresh token
+  - Returns: success message and sets HttpOnly access token cookie
 
 - POST /api/auth/register
   - Access: Anonymous
   - Body: RegisterDto
   - Returns: success message
 
-- POST /api/auth/refresh
-  - Access: Anonymous
-  - Body: RefreshTokenRequestDto
-  - Returns: rotated access token + new refresh token
-
 - POST /api/auth/revoke
-  - Access: Anonymous
-  - Body: RevokeTokenRequestDto
-  - Returns: success message if refresh token is revoked
+  - Access: Authenticated
+  - Returns: revokes active tokens for current user and clears auth cookie
 
 ## Students
 
@@ -104,4 +98,3 @@ Invalid requests return 400 Bad Request under ApiController model validation beh
 ## Background Jobs
 
 - Hangfire dashboard: /hangfire
-- Recurring job: daily cleanup of expired/revoked refresh tokens
