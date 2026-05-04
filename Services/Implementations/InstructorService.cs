@@ -1,32 +1,36 @@
-using Microsoft.EntityFrameworkCore;
-
 public class InstructorService : IInstructorService
 {
-    private readonly AppDbContext _context;
+    private readonly IInstructorRepository _instructorRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IStudentRepository _studentRepository;
 
-    public InstructorService(AppDbContext context)
+    public InstructorService(
+        IInstructorRepository instructorRepository,
+        IUserRepository userRepository,
+        IStudentRepository studentRepository)
     {
-        _context = context;
+        _instructorRepository = instructorRepository;
+        _userRepository = userRepository;
+        _studentRepository = studentRepository;
     }
 
     public async Task<List<InstructorResponseDto>> GetAllAsync()
     {
-        return await _context.Instructors
-            .AsNoTracking()
+        var instructors = await _instructorRepository.GetAllAsync();
+
+        return instructors
             .Select(i => new InstructorResponseDto
             {
                 Id = i.Id,
                 Name = i.Name,
                 UserId = i.UserId
             })
-            .ToListAsync();
+            .ToList();
     }
 
     public async Task<InstructorResponseDto> CreateAsync(CreateInstructorDto dto)
     {
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == dto.UserId);
+        var user = await _userRepository.GetByIdAsync(dto.UserId);
 
         if (user == null)
             throw new InvalidOperationException("User not found.");
@@ -34,16 +38,12 @@ public class InstructorService : IInstructorService
         if (!string.Equals(user.Role, RoleConstants.Instructor, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Instructor must be linked to a user with role 'Instructor'.");
 
-        var linkedInstructorExists = await _context.Instructors
-            .AsNoTracking()
-            .AnyAsync(i => i.UserId == dto.UserId);
+        var linkedInstructorExists = await _instructorRepository.UserLinkedToInstructorAsync(dto.UserId);
 
         if (linkedInstructorExists)
             throw new InvalidOperationException("This user is already linked to another instructor.");
 
-        var linkedStudentExists = await _context.Students
-            .AsNoTracking()
-            .AnyAsync(s => s.UserId == dto.UserId);
+        var linkedStudentExists = await _studentRepository.UserLinkedToStudentAsync(dto.UserId);
 
         if (linkedStudentExists)
             throw new InvalidOperationException("This user is already linked to a student.");
@@ -54,8 +54,8 @@ public class InstructorService : IInstructorService
             UserId = dto.UserId
         };
 
-        _context.Instructors.Add(instructor);
-        await _context.SaveChangesAsync();
+        await _instructorRepository.AddAsync(instructor);
+        await _instructorRepository.SaveChangesAsync();
 
         return new InstructorResponseDto
         {
@@ -67,26 +67,25 @@ public class InstructorService : IInstructorService
 
     public async Task<InstructorResponseDto?> GetByIdAsync(int id)
     {
-        return await _context.Instructors
-            .AsNoTracking()
-            .Where(i => i.Id == id)
-            .Select(i => new InstructorResponseDto
-            {
-                Id = i.Id,
-                Name = i.Name,
-                UserId = i.UserId
-            })
-            .FirstOrDefaultAsync();
+        var instructor = await _instructorRepository.GetByIdAsync(id);
+
+        if (instructor == null)
+            return null;
+
+        return new InstructorResponseDto
+        {
+            Id = instructor.Id,
+            Name = instructor.Name,
+            UserId = instructor.UserId
+        };
     }
 
     public async Task<InstructorResponseDto?> UpdateAsync(int id, UpdateInstructorDto dto)
     {
-        var instructor = await _context.Instructors.FindAsync(id);
+        var instructor = await _instructorRepository.GetByIdForUpdateAsync(id);
         if (instructor == null) return null;
 
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == dto.UserId);
+        var user = await _userRepository.GetByIdAsync(dto.UserId);
 
         if (user == null)
             throw new InvalidOperationException("User not found.");
@@ -94,23 +93,19 @@ public class InstructorService : IInstructorService
         if (!string.Equals(user.Role, RoleConstants.Instructor, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Instructor must be linked to a user with role 'Instructor'.");
 
-        var linkedInstructorExists = await _context.Instructors
-            .AsNoTracking()
-            .AnyAsync(i => i.UserId == dto.UserId && i.Id != id);
+        var linkedInstructorExists = await _instructorRepository.UserLinkedToInstructorAsync(dto.UserId, id);
 
         if (linkedInstructorExists)
             throw new InvalidOperationException("This user is already linked to another instructor.");
 
-        var linkedStudentExists = await _context.Students
-            .AsNoTracking()
-            .AnyAsync(s => s.UserId == dto.UserId);
+        var linkedStudentExists = await _studentRepository.UserLinkedToStudentAsync(dto.UserId);
 
         if (linkedStudentExists)
             throw new InvalidOperationException("This user is already linked to a student.");
 
         instructor.Name = dto.Name;
         instructor.UserId = dto.UserId;
-        await _context.SaveChangesAsync();
+        await _instructorRepository.SaveChangesAsync();
 
         return new InstructorResponseDto
         {

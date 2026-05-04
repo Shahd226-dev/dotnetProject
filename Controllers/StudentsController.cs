@@ -16,55 +16,37 @@ public class StudentsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        return Ok(await _service.GetAllAsync());
+        var students = await _service.GetAllAsync();
+        return Ok(ApiResponse<List<StudentResponseDto>>.Ok(students, "Students retrieved."));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
         var student = await _service.GetByIdAsync(id);
-        if (student == null) return NotFound();
-        return Ok(student);
+        if (student == null)
+            return NotFound(ApiResponse<object?>.Fail("Student not found."));
+
+        return Ok(ApiResponse<StudentResponseDto>.Ok(student, "Student retrieved."));
     }
 
     [HttpPost]
     [Authorize(Roles = RoleConstants.Admin)]
     public async Task<IActionResult> Create(CreateStudentDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        StudentResponseDto created;
-        try
-        {
-            created = await _service.CreateAsync(dto);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        var created = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id },
+            ApiResponse<StudentResponseDto>.Ok(created, "Student created."));
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = RoleConstants.Admin)]
     public async Task<IActionResult> Update(int id, UpdateStudentDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var updated = await _service.UpdateAsync(id, dto);
+        if (updated == null)
+            return NotFound(ApiResponse<object?>.Fail("Student not found."));
 
-        StudentResponseDto? updated;
-        try
-        {
-            updated = await _service.UpdateAsync(id, dto);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-
-        if (updated == null) return NotFound();
-        return Ok(updated);
+        return Ok(ApiResponse<StudentResponseDto>.Ok(updated, "Student updated."));
     }
 }

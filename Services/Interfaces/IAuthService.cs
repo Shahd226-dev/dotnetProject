@@ -1,7 +1,7 @@
 public interface IAuthService
 {
     Task<bool> UsernameExistsAsync(string username);
-    Task<User> RegisterAsync(RegisterDto dto);
-    Task<string?> LoginAsync(LoginDto dto);
+    Task<AuthResponseDto> RegisterAsync(RegisterDto dto);
+    Task<AuthResponseDto?> LoginAsync(LoginDto dto);
     Task<bool> RevokeAsync();
 }

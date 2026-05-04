@@ -1,6 +1,6 @@
-# Course Management System API
+# Course Management System (API + React)
 
-ASP.NET Core Web API project for managing students, instructors, courses, enrollments, and authentication.
+Full-stack project with an ASP.NET Core Web API backend and a React frontend for managing students, instructors, courses, enrollments, and authentication.
 
 ## Assignment Coverage
 
@@ -18,15 +18,10 @@ This project keeps the existing domain models and implements the required Web En
 - Swagger endpoint documentation
 - Hangfire recurring background job
 
-## Technologies Used
+## Tech Stack
 
-- ASP.NET Core Web API: REST API framework and middleware pipeline.
-- Entity Framework Core: ORM for database access and relationship mapping.
-- SQLite / SQL Server Provider for EF Core: local file DB by default with optional SQL Server support.
-- JWT Bearer Authentication: stateless token-based authentication.
-- Hangfire + MemoryStorage: background job scheduling and dashboard.
-- Data Annotations: request validation attributes on DTOs.
-- Swagger (Swashbuckle): interactive API documentation and testing UI.
+- **Backend**: ASP.NET Core Web API, EF Core, SQLite/SQL Server, JWT, Hangfire, Swagger
+- **Frontend**: React (CRA), Axios, React Router
 
 ## Project Structure (Key Parts)
 
@@ -49,13 +44,8 @@ This project keeps the existing domain models and implements the required Web En
 - JWT login endpoint: POST /api/auth/login
 - Register endpoint: POST /api/auth/register
 - Revoke endpoint: POST /api/auth/revoke
-
-- Access token is returned as an HttpOnly cookie named access_token.
-- APIs still support Authorization header bearer tokens when needed.
-
-- If token is sent in request header:
-
-Authorization: Bearer <jwt-token>
+- Token is returned in the response body and also set as an HttpOnly cookie (access_token).
+- Frontend stores the token in localStorage and sends it as `Authorization: Bearer <token>`.
 
 - Role-based endpoint protection is implemented using Authorize(Roles = ...)
   - Example roles: Admin, Instructor, User
@@ -77,7 +67,7 @@ For APIs used by multiple clients, Authorization headers remain common and are a
 ## Prerequisites
 
 - .NET SDK 8.0+
-- No external DB required for local run (SQLite file DB is default)
+- Node.js 18+
 
 ## Configuration
 
@@ -85,6 +75,10 @@ Update connection strings and JWT configuration in:
 
 - appsettings.json
 - appsettings.Development.json
+
+Frontend API base URL is configured in:
+
+- frontend/.env (REACT_APP_API_BASE_URL)
 
 ## Run the API
 
@@ -98,6 +92,32 @@ Update connection strings and JWT configuration in:
 Swagger UI is available at:
 
 - /swagger
+
+## Run the Frontend
+
+1. Install dependencies
+   cd frontend
+   npm install
+2. Run the app
+   npm start
+
+The React app runs at http://localhost:3000 by default.
+
+## API Base URL
+
+- http://localhost:5000/api
+
+## Response Format
+
+All endpoints return a consistent response envelope:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "..."
+}
+```
 
 ## EF Core Migrations
 

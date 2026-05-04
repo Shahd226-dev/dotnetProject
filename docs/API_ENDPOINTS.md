@@ -1,16 +1,28 @@
 # API Endpoints
 
+## Response Format
+
+All responses follow:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "..."
+}
+```
+
 ## Auth
 
 - POST /api/auth/login
   - Access: Anonymous
   - Body: LoginDto
-  - Returns: success message and sets HttpOnly access token cookie
+  - Returns: accessToken, username, role and sets HttpOnly access token cookie
 
 - POST /api/auth/register
   - Access: Anonymous
   - Body: RegisterDto
-  - Returns: success message
+  - Returns: username and role
 
 - POST /api/auth/revoke
   - Access: Authenticated
@@ -20,11 +32,11 @@
 
 - GET /api/students
   - Access: Authenticated
-  - Returns: list of StudentResponseDto
+  - Returns: list of StudentResponseDto (id, name, email, userId)
 
 - GET /api/students/{id}
   - Access: Authenticated
-  - Returns: StudentResponseDto
+  - Returns: StudentResponseDto (id, name, email, userId)
 
 - POST /api/students
   - Access: Admin
@@ -60,11 +72,11 @@
 
 - GET /api/courses
   - Access: Authenticated
-  - Returns: list of CourseResponseDto
+  - Returns: list of CourseResponseDto (id, title, instructorId)
 
 - GET /api/courses/{id}
   - Access: Authenticated
-  - Returns: CourseResponseDto
+  - Returns: CourseResponseDto (id, title, instructorId)
 
 - POST /api/courses
   - Access: Admin

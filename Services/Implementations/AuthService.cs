@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
@@ -7,48 +6,53 @@ using Microsoft.Extensions.Options;
 
 public class AuthService : IAuthService
 {
-    private readonly AppDbContext _context;
+    private readonly IUserRepository _userRepository;
     private readonly JwtSettings _jwtSettings;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public AuthService(
-        AppDbContext context,
+        IUserRepository userRepository,
         IOptions<JwtSettings> jwtOptions,
         IHttpContextAccessor httpContextAccessor)
     {
-        _context = context;
+        _userRepository = userRepository;
         _jwtSettings = jwtOptions.Value;
         _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<bool> UsernameExistsAsync(string username)
     {
-        return await _context.Users
-            .AsNoTracking()
-            .AnyAsync(u => u.Username == username);
+        return await _userRepository.UsernameExistsAsync(username);
     }
 
-    public async Task<User> RegisterAsync(RegisterDto dto)
+    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
     {
+        var resolvedRole = ResolveRole(dto.Role);
+        if (resolvedRole == null)
+            throw new InvalidOperationException("Invalid role.");
+
         var user = new User
         {
             Username = dto.Username,
             PasswordHash = PasswordHasher.Hash(dto.Password),
-            Role = string.IsNullOrWhiteSpace(dto.Role) ? RoleConstants.User : dto.Role,
+            Role = resolvedRole,
             TokenVersion = 0
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        await _userRepository.AddAsync(user);
+        await _userRepository.SaveChangesAsync();
 
-        return user;
+        return new AuthResponseDto
+        {
+            AccessToken = string.Empty,
+            Username = user.Username,
+            Role = user.Role
+        };
     }
 
-    public async Task<string?> LoginAsync(LoginDto dto)
+    public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
     {
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Username == dto.Username);
+        var user = await _userRepository.GetByUsernameAsync(dto.Username);
 
         if (user == null)
             return null;
@@ -56,7 +60,12 @@ public class AuthService : IAuthService
         if (user.PasswordHash != PasswordHasher.Hash(dto.Password))
             return null;
 
-        return GenerateToken(user);
+        return new AuthResponseDto
+        {
+            AccessToken = GenerateToken(user),
+            Username = user.Username,
+            Role = user.Role
+        };
     }
 
     public async Task<bool> RevokeAsync()
@@ -65,14 +74,13 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(username))
             return false;
 
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == username);
+        var user = await _userRepository.GetByUsernameForUpdateAsync(username);
 
         if (user == null)
             return false;
 
         user.TokenVersion += 1;
-        await _context.SaveChangesAsync();
+        await _userRepository.SaveChangesAsync();
         return true;
     }
 
@@ -96,5 +104,22 @@ public class AuthService : IAuthService
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string? ResolveRole(string role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+            return RoleConstants.User;
+
+        if (string.Equals(role, RoleConstants.Admin, StringComparison.OrdinalIgnoreCase))
+            return RoleConstants.Admin;
+
+        if (string.Equals(role, RoleConstants.Instructor, StringComparison.OrdinalIgnoreCase))
+            return RoleConstants.Instructor;
+
+        if (string.Equals(role, RoleConstants.User, StringComparison.OrdinalIgnoreCase))
+            return RoleConstants.User;
+
+        return null;
     }
 }

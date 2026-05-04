@@ -1,66 +1,88 @@
-using Microsoft.EntityFrameworkCore;
-
 public class CourseService : ICourseService
 {
-    private readonly AppDbContext _context;
+    private readonly ICourseRepository _courseRepository;
+    private readonly IInstructorRepository _instructorRepository;
 
-    public CourseService(AppDbContext context)
+    public CourseService(
+        ICourseRepository courseRepository,
+        IInstructorRepository instructorRepository)
     {
-        _context = context;
+        _courseRepository = courseRepository;
+        _instructorRepository = instructorRepository;
     }
 
     public async Task<List<CourseResponseDto>> GetAllAsync()
     {
-        return await _context.Courses
-            .AsNoTracking()
+        var courses = await _courseRepository.GetAllAsync();
+
+        return courses
             .Select(c => new CourseResponseDto
             {
                 Id = c.Id,
-                Title = c.Title
+                Title = c.Title,
+                InstructorId = c.InstructorId
             })
-            .ToListAsync();
+            .ToList();
     }
 
     public async Task<CourseResponseDto?> GetByIdAsync(int id)
     {
-        var course = await _context.Courses
-            .AsNoTracking()
-            .Where(c => c.Id == id)
-            .Select(c => new CourseResponseDto
-            {
-                Id = c.Id,
-                Title = c.Title
-            })
-            .FirstOrDefaultAsync();
+        var course = await _courseRepository.GetByIdAsync(id);
 
-        return course;
+        if (course == null)
+            return null;
+
+        return new CourseResponseDto
+        {
+            Id = course.Id,
+            Title = course.Title,
+            InstructorId = course.InstructorId
+        };
     }
 
     public async Task<CourseResponseDto> CreateAsync(CreateCourseDto dto)
     {
+        var instructorExists = await _instructorRepository.ExistsAsync(dto.InstructorId);
+        if (!instructorExists)
+            throw new InvalidOperationException("Instructor not found.");
+
         var course = new Course
         {
             Title = dto.Title,
             InstructorId = dto.InstructorId
         };
 
-        _context.Courses.Add(course);
-        await _context.SaveChangesAsync();
+        await _courseRepository.AddAsync(course);
+        await _courseRepository.SaveChangesAsync();
 
-        return new CourseResponseDto { Id = course.Id, Title = course.Title };
+        return new CourseResponseDto
+        {
+            Id = course.Id,
+            Title = course.Title,
+            InstructorId = course.InstructorId
+        };
     }
 
     public async Task<CourseResponseDto?> UpdateAsync(int id, UpdateCourseDto dto)
     {
-        var course = await _context.Courses.FindAsync(id);
+        var course = await _courseRepository.GetByIdForUpdateAsync(id);
         if (course == null)
             return null;
+
+        var instructorExists = await _instructorRepository.ExistsAsync(dto.InstructorId);
+        if (!instructorExists)
+            throw new InvalidOperationException("Instructor not found.");
 
         course.Title = dto.Title;
         course.InstructorId = dto.InstructorId;
 
-        await _context.SaveChangesAsync();
+        await _courseRepository.SaveChangesAsync();
 
-        return new CourseResponseDto { Id = course.Id, Title = course.Title };
+        return new CourseResponseDto
+        {
+            Id = course.Id,
+            Title = course.Title,
+            InstructorId = course.InstructorId
+        };
     }
 }

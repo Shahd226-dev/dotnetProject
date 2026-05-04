@@ -167,3 +167,6 @@ E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\Hangfire.MemoryStorage.dll
 E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\Hangfire.NetCore.dll
 E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\Newtonsoft.Json.dll
 E:\Uni\Web\CourseManagementAPI\obj\Debug\net8.0\CourseManagementAPI.sourcelink.json
+E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\frontend\package.json
+E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\frontend\package-lock.json
+E:\Uni\Web\CourseManagementAPI\bin\Debug\net8.0\package-lock.json

@@ -16,33 +16,37 @@ public class CoursesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        return Ok(await _service.GetAllAsync());
+        var courses = await _service.GetAllAsync();
+        return Ok(ApiResponse<List<CourseResponseDto>>.Ok(courses, "Courses retrieved."));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
         var course = await _service.GetByIdAsync(id);
-        if (course == null) return NotFound();
-        return Ok(course);
+        if (course == null)
+            return NotFound(ApiResponse<object?>.Fail("Course not found."));
+
+        return Ok(ApiResponse<CourseResponseDto>.Ok(course, "Course retrieved."));
     }
 
     [HttpPost]
     [Authorize(Roles = RoleConstants.Admin)]
     public async Task<IActionResult> Create(CreateCourseDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
         var created = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id },
+            ApiResponse<CourseResponseDto>.Ok(created, "Course created."));
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = RoleConstants.Admin)]
     public async Task<IActionResult> Update(int id, UpdateCourseDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
         var updated = await _service.UpdateAsync(id, dto);
-        if (updated == null) return NotFound();
-        return Ok(updated);
+        if (updated == null)
+            return NotFound(ApiResponse<object?>.Fail("Course not found."));
+
+        return Ok(ApiResponse<CourseResponseDto>.Ok(updated, "Course updated."));
     }
 }

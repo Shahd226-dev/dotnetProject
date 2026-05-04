@@ -1,33 +1,32 @@
-using Microsoft.EntityFrameworkCore;
-
 public class EnrollmentService : IEnrollmentService
 {
-    private readonly AppDbContext _context;
+    private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IStudentRepository _studentRepository;
+    private readonly ICourseRepository _courseRepository;
 
-    public EnrollmentService(AppDbContext context)
+    public EnrollmentService(
+        IEnrollmentRepository enrollmentRepository,
+        IStudentRepository studentRepository,
+        ICourseRepository courseRepository)
     {
-        _context = context;
+        _enrollmentRepository = enrollmentRepository;
+        _studentRepository = studentRepository;
+        _courseRepository = courseRepository;
     }
 
     public async Task EnrollAsync(EnrollStudentDto dto)
     {
-        var studentExists = await _context.Students
-            .AsNoTracking()
-            .AnyAsync(s => s.Id == dto.StudentId);
+        var studentExists = await _studentRepository.ExistsAsync(dto.StudentId);
 
         if (!studentExists)
             throw new InvalidOperationException("Student not found.");
 
-        var courseExists = await _context.Courses
-            .AsNoTracking()
-            .AnyAsync(c => c.Id == dto.CourseId);
+        var courseExists = await _courseRepository.ExistsAsync(dto.CourseId);
 
         if (!courseExists)
             throw new InvalidOperationException("Course not found.");
 
-        var alreadyEnrolled = await _context.Enrollments
-            .AsNoTracking()
-            .AnyAsync(e => e.StudentId == dto.StudentId && e.CourseId == dto.CourseId);
+        var alreadyEnrolled = await _enrollmentRepository.EnrollmentExistsAsync(dto.StudentId, dto.CourseId);
 
         if (alreadyEnrolled)
             throw new InvalidOperationException("Student is already enrolled in this course.");
@@ -38,7 +37,7 @@ public class EnrollmentService : IEnrollmentService
             CourseId = dto.CourseId
         };
 
-        _context.Enrollments.Add(enrollment);
-        await _context.SaveChangesAsync();
+        await _enrollmentRepository.AddAsync(enrollment);
+        await _enrollmentRepository.SaveChangesAsync();
     }
 }

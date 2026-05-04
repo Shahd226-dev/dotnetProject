@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -19,31 +20,24 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var authResponse = await _authService.LoginAsync(dto);
+        if (authResponse == null)
+            return Unauthorized(ApiResponse<object?>.Fail("Invalid username or password."));
 
-        var accessToken = await _authService.LoginAsync(dto);
-        if (accessToken == null)
-            return Unauthorized();
-
-        SetAuthCookie(accessToken);
-        return Ok("Login successful");
+        SetAuthCookie(authResponse.AccessToken);
+        return Ok(ApiResponse<AuthResponseDto>.Ok(authResponse, "Login successful."));
     }
 
     [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var usernameExists = await _authService.UsernameExistsAsync(dto.Username);
         if (usernameExists)
-            return Conflict("Username already exists");
+            return Conflict(ApiResponse<object?>.Fail("Username already exists."));
 
-        await _authService.RegisterAsync(dto);
-
-        return Ok("User Registered");
+        var registeredUser = await _authService.RegisterAsync(dto);
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<AuthResponseDto>.Ok(registeredUser, "User registered."));
     }
 
     [Authorize]
@@ -52,10 +46,10 @@ public class AuthController : ControllerBase
     {
         var revoked = await _authService.RevokeAsync();
         if (!revoked)
-            return Unauthorized();
+            return Unauthorized(ApiResponse<object?>.Fail("Unauthorized."));
 
         DeleteAuthCookie();
-        return Ok("Token revoked");
+        return Ok(ApiResponse<object?>.Ok(null, "Token revoked."));
     }
 
     private void SetAuthCookie(string accessToken)

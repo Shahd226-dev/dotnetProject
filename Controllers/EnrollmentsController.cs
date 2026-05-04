@@ -17,18 +17,7 @@ public class EnrollmentsController : ControllerBase
     [Authorize(Roles = RoleConstants.Instructor + "," + RoleConstants.Admin)]
     public async Task<IActionResult> Enroll(EnrollStudentDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        try
-        {
-            await _service.EnrollAsync(dto);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-
-        return Ok("Student Enrolled");
+        await _service.EnrollAsync(dto);
+        return Ok(ApiResponse<object?>.Ok(null, "Student enrolled."));
     }
 }
