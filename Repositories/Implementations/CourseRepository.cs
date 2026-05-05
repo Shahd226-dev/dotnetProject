@@ -16,6 +16,14 @@ public class CourseRepository : ICourseRepository
             .ToListAsync();
     }
 
+    public async Task<List<Course>> GetByInstructorIdAsync(int instructorId)
+    {
+        return await _context.Courses
+            .AsNoTracking()
+            .Where(c => c.InstructorId == instructorId)
+            .ToListAsync();
+    }
+
     public async Task<Course?> GetByIdAsync(int id)
     {
         return await _context.Courses
@@ -38,6 +46,12 @@ public class CourseRepository : ICourseRepository
     public async Task AddAsync(Course course)
     {
         await _context.Courses.AddAsync(course);
+    }
+
+    public Task DeleteAsync(Course course)
+    {
+        _context.Courses.Remove(course);
+        return Task.CompletedTask;
     }
 
     public Task SaveChangesAsync()

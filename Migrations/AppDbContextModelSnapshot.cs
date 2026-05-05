@@ -22,6 +22,10 @@ namespace CourseManagementAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("InstructorId")
                         .HasColumnType("INTEGER");
 
@@ -44,6 +48,9 @@ namespace CourseManagementAPI.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("EnrolledAt")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("StudentId", "CourseId");
 
                     b.HasIndex("CourseId");
@@ -57,11 +64,15 @@ namespace CourseManagementAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("Bio")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("UserId")
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -72,48 +83,20 @@ namespace CourseManagementAPI.Migrations
                     b.ToTable("Instructors");
                 });
 
-            modelBuilder.Entity("InstructorProfile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Bio")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("InstructorId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InstructorId")
-                        .IsUnique();
-
-                    b.ToTable("InstructorProfiles");
-                });
-
             modelBuilder.Entity("Student", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Email")
+                    b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("UserId")
+                    b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -127,6 +110,13 @@ namespace CourseManagementAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -135,14 +125,14 @@ namespace CourseManagementAPI.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("TokenVersion")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.HasIndex("Username")
                         .IsUnique();
@@ -183,30 +173,21 @@ namespace CourseManagementAPI.Migrations
             modelBuilder.Entity("Instructor", b =>
                 {
                     b.HasOne("User", "User")
-                        .WithOne("InstructorProfile")
+                        .WithOne("Instructor")
                         .HasForeignKey("Instructor", "UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("InstructorProfile", b =>
-                {
-                    b.HasOne("Instructor", "Instructor")
-                        .WithOne("Profile")
-                        .HasForeignKey("InstructorProfile", "InstructorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Instructor");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Student", b =>
                 {
                     b.HasOne("User", "User")
-                        .WithOne("StudentProfile")
+                        .WithOne("Student")
                         .HasForeignKey("Student", "UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -219,9 +200,6 @@ namespace CourseManagementAPI.Migrations
             modelBuilder.Entity("Instructor", b =>
                 {
                     b.Navigation("Courses");
-
-                    b.Navigation("Profile")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Student", b =>
@@ -231,9 +209,9 @@ namespace CourseManagementAPI.Migrations
 
             modelBuilder.Entity("User", b =>
                 {
-                    b.Navigation("InstructorProfile");
+                    b.Navigation("Instructor");
 
-                    b.Navigation("StudentProfile");
+                    b.Navigation("Student");
                 });
 #pragma warning restore 612, 618
         }

@@ -7,8 +7,11 @@ const RegisterPage = () => {
   const { addToast } = useToast();
   const [form, setForm] = useState({
     username: "",
+    email: "",
+    fullName: "",
+    bio: "",
     password: "",
-    role: "User"
+    role: "Student"
   });
 
   const handleChange = (event) => {
@@ -18,14 +21,30 @@ const RegisterPage = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (form.role !== "Admin" && !form.fullName.trim()) {
+      addToast({
+        type: "error",
+        title: "Registration failed",
+        message: "Full name is required for students and instructors."
+      });
+      return;
+    }
+
     const response = await register(form);
     if (response.success) {
       addToast({
         type: "success",
         title: "Account created",
-        message: response.message || "User registered."
+        message: response.message || "Student registered."
       });
-      setForm({ username: "", password: "", role: "User" });
+      setForm({
+        username: "",
+        email: "",
+        fullName: "",
+        bio: "",
+        password: "",
+        role: "Student"
+      });
       return;
     }
 
@@ -55,6 +74,42 @@ const RegisterPage = () => {
           />
         </div>
         <div className="form-group">
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            className="input"
+            value={form.email}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="fullName">Full name</label>
+          <input
+            id="fullName"
+            name="fullName"
+            className="input"
+            value={form.fullName}
+            onChange={handleChange}
+            required={form.role !== "Admin"}
+          />
+        </div>
+        {form.role === "Instructor" && (
+          <div className="form-group">
+            <label htmlFor="bio">Bio</label>
+            <textarea
+              id="bio"
+              name="bio"
+              className="input"
+              rows="3"
+              value={form.bio}
+              onChange={handleChange}
+            />
+          </div>
+        )}
+        <div className="form-group">
           <label htmlFor="password">Password</label>
           <input
             id="password"
@@ -75,7 +130,7 @@ const RegisterPage = () => {
             value={form.role}
             onChange={handleChange}
           >
-            <option value="User">User</option>
+            <option value="Student">Student</option>
             <option value="Instructor">Instructor</option>
             <option value="Admin">Admin</option>
           </select>

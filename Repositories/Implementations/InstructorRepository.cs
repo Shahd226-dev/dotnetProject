@@ -28,6 +28,13 @@ public class InstructorRepository : IInstructorRepository
         return _context.Instructors.FindAsync(id).AsTask();
     }
 
+    public async Task<Instructor?> GetByUserIdAsync(int userId)
+    {
+        return await _context.Instructors
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.UserId == userId);
+    }
+
     public async Task<bool> ExistsAsync(int id)
     {
         return await _context.Instructors

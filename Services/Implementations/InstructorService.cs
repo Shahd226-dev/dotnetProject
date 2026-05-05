@@ -14,21 +14,22 @@ public class InstructorService : IInstructorService
         _studentRepository = studentRepository;
     }
 
-    public async Task<List<InstructorResponseDto>> GetAllAsync()
+    public async Task<List<InstructorDto>> GetAllAsync()
     {
         var instructors = await _instructorRepository.GetAllAsync();
 
         return instructors
-            .Select(i => new InstructorResponseDto
+            .Select(i => new InstructorDto
             {
                 Id = i.Id,
-                Name = i.Name,
+                FullName = i.FullName,
+                Bio = i.Bio,
                 UserId = i.UserId
             })
             .ToList();
     }
 
-    public async Task<InstructorResponseDto> CreateAsync(CreateInstructorDto dto)
+    public async Task<InstructorDto> CreateAsync(InstructorDto dto)
     {
         var user = await _userRepository.GetByIdAsync(dto.UserId);
 
@@ -41,46 +42,49 @@ public class InstructorService : IInstructorService
         var linkedInstructorExists = await _instructorRepository.UserLinkedToInstructorAsync(dto.UserId);
 
         if (linkedInstructorExists)
-            throw new InvalidOperationException("This user is already linked to another instructor.");
+            throw new ConflictException("This user is already linked to another instructor.");
 
         var linkedStudentExists = await _studentRepository.UserLinkedToStudentAsync(dto.UserId);
 
         if (linkedStudentExists)
-            throw new InvalidOperationException("This user is already linked to a student.");
+            throw new ConflictException("This user is already linked to a student.");
 
         var instructor = new Instructor
         {
-            Name = dto.Name,
+            FullName = dto.FullName.Trim(),
+            Bio = dto.Bio.Trim(),
             UserId = dto.UserId
         };
 
         await _instructorRepository.AddAsync(instructor);
         await _instructorRepository.SaveChangesAsync();
 
-        return new InstructorResponseDto
+        return new InstructorDto
         {
             Id = instructor.Id,
-            Name = instructor.Name,
+            FullName = instructor.FullName,
+            Bio = instructor.Bio,
             UserId = instructor.UserId
         };
     }
 
-    public async Task<InstructorResponseDto?> GetByIdAsync(int id)
+    public async Task<InstructorDto?> GetByIdAsync(int id)
     {
         var instructor = await _instructorRepository.GetByIdAsync(id);
 
         if (instructor == null)
             return null;
 
-        return new InstructorResponseDto
+        return new InstructorDto
         {
             Id = instructor.Id,
-            Name = instructor.Name,
+            FullName = instructor.FullName,
+            Bio = instructor.Bio,
             UserId = instructor.UserId
         };
     }
 
-    public async Task<InstructorResponseDto?> UpdateAsync(int id, UpdateInstructorDto dto)
+    public async Task<InstructorDto?> UpdateAsync(int id, InstructorDto dto)
     {
         var instructor = await _instructorRepository.GetByIdForUpdateAsync(id);
         if (instructor == null) return null;
@@ -96,21 +100,23 @@ public class InstructorService : IInstructorService
         var linkedInstructorExists = await _instructorRepository.UserLinkedToInstructorAsync(dto.UserId, id);
 
         if (linkedInstructorExists)
-            throw new InvalidOperationException("This user is already linked to another instructor.");
+            throw new ConflictException("This user is already linked to another instructor.");
 
         var linkedStudentExists = await _studentRepository.UserLinkedToStudentAsync(dto.UserId);
 
         if (linkedStudentExists)
-            throw new InvalidOperationException("This user is already linked to a student.");
+            throw new ConflictException("This user is already linked to a student.");
 
-        instructor.Name = dto.Name;
+        instructor.FullName = dto.FullName.Trim();
+        instructor.Bio = dto.Bio.Trim();
         instructor.UserId = dto.UserId;
         await _instructorRepository.SaveChangesAsync();
 
-        return new InstructorResponseDto
+        return new InstructorDto
         {
             Id = instructor.Id,
-            Name = instructor.Name,
+            FullName = instructor.FullName,
+            Bio = instructor.Bio,
             UserId = instructor.UserId
         };
     }

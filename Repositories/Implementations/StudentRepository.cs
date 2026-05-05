@@ -28,25 +28,18 @@ public class StudentRepository : IStudentRepository
         return _context.Students.FindAsync(id).AsTask();
     }
 
+    public async Task<Student?> GetByUserIdAsync(int userId)
+    {
+        return await _context.Students
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == userId);
+    }
+
     public async Task<bool> ExistsAsync(int id)
     {
         return await _context.Students
             .AsNoTracking()
             .AnyAsync(s => s.Id == id);
-    }
-
-    public async Task<bool> EmailExistsAsync(string email, int? excludeStudentId = null)
-    {
-        var query = _context.Students
-            .AsNoTracking()
-            .Where(s => s.Email == email);
-
-        if (excludeStudentId.HasValue)
-        {
-            query = query.Where(s => s.Id != excludeStudentId.Value);
-        }
-
-        return await query.AnyAsync();
     }
 
     public async Task<bool> UserLinkedToStudentAsync(int userId, int? excludeStudentId = null)

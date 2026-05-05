@@ -18,17 +18,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await authService.login(credentials);
-      if (response.success && response.data?.accessToken) {
+      if (response.success && response.data?.accessToken && response.data?.user) {
         localStorage.setItem("accessToken", response.data.accessToken);
-        localStorage.setItem(
-          "authUser",
-          JSON.stringify({
-            username: response.data.username,
-            role: response.data.role
-          })
-        );
+        localStorage.setItem("authUser", JSON.stringify(response.data.user));
         setToken(response.data.accessToken);
-        setUser({ username: response.data.username, role: response.data.role });
+        setUser(response.data.user);
       }
       return response;
     } catch (error) {
@@ -51,17 +45,11 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     setLoading(true);
-    try {
-      await authService.revoke();
-    } catch {
-      // Ignore revoke failures; local logout still clears state.
-    } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("authUser");
-      setToken(null);
-      setUser(null);
-      setLoading(false);
-    }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("authUser");
+    setToken(null);
+    setUser(null);
+    setLoading(false);
   };
 
   return (

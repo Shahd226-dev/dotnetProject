@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import instructorService from "../services/instructorService";
+import authService from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import SkeletonTable from "../components/SkeletonTable";
@@ -10,11 +11,12 @@ const InstructorsPage = () => {
   const { isAdmin } = useAuth();
   const { addToast } = useToast();
   const [instructors, setInstructors] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", userId: "" });
+  const [form, setForm] = useState({ fullName: "", userId: "" });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", userId: "" });
+  const [editForm, setEditForm] = useState({ fullName: "", userId: "" });
 
   const loadInstructors = async () => {
     setLoading(true);
@@ -37,13 +39,32 @@ const InstructorsPage = () => {
     loadInstructors();
   }, []);
 
+  useEffect(() => {
+    if (isAdmin) {
+      loadUsers();
+    }
+  }, [isAdmin]);
+
+  const loadUsers = async () => {
+    try {
+      const response = await authService.getUsers();
+      if (response.success) {
+        setUsers(response.data || []);
+      }
+    } catch {
+      // Ignore user list failures; admin can refresh or use API directly.
+    }
+  };
+
+  const instructorUsers = users.filter((user) => user.role === "Instructor");
+
   const handleCreate = async (event) => {
     event.preventDefault();
     setError("");
 
     try {
       const response = await instructorService.create({
-        name: form.name,
+        fullName: form.fullName,
         userId: Number(form.userId)
       });
       if (response.success) {
@@ -53,7 +74,7 @@ const InstructorsPage = () => {
           message: response.message
         });
         setInstructors((prev) => [...prev, response.data]);
-        setForm({ name: "", userId: "" });
+        setForm({ fullName: "", userId: "" });
         return;
       }
       addToast({
@@ -72,7 +93,7 @@ const InstructorsPage = () => {
 
   const startEdit = (instructor) => {
     setEditingId(instructor.id);
-    setEditForm({ name: instructor.name, userId: instructor.userId || "" });
+    setEditForm({ fullName: instructor.fullName, userId: instructor.userId || "" });
   };
 
   const handleUpdate = async (event) => {
@@ -82,7 +103,7 @@ const InstructorsPage = () => {
 
     try {
       const response = await instructorService.update(editingId, {
-        name: editForm.name,
+        fullName: editForm.fullName,
         userId: Number(editForm.userId)
       });
       if (response.success) {
@@ -123,29 +144,35 @@ const InstructorsPage = () => {
           <h3>Create instructor</h3>
           <form onSubmit={handleCreate} className="form-grid">
             <div className="form-group">
-              <label>Name</label>
+              <label>Full name</label>
               <input
-                name="name"
+                name="fullName"
                 className="input"
-                value={form.name}
+                value={form.fullName}
                 onChange={(event) =>
-                  setForm((prev) => ({ ...prev, name: event.target.value }))
+                  setForm((prev) => ({ ...prev, fullName: event.target.value }))
                 }
                 required
               />
             </div>
             <div className="form-group">
-              <label>User Id</label>
-              <input
+              <label>Account</label>
+              <select
                 name="userId"
-                type="number"
-                className="input"
+                className="select"
                 value={form.userId}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, userId: event.target.value }))
                 }
                 required
-              />
+              >
+                <option value="">Select an instructor account</option>
+                {instructorUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.username} ({user.email})
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="actions">
               <button className="btn btn-primary" type="submit">
@@ -165,8 +192,7 @@ const InstructorsPage = () => {
             <thead>
               <tr>
                 <th>Id</th>
-                <th>Name</th>
-                <th>User Id</th>
+                <th>Full name</th>
                 {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
@@ -174,8 +200,7 @@ const InstructorsPage = () => {
               {instructors.map((instructor) => (
                 <tr key={instructor.id}>
                   <td>{instructor.id}</td>
-                  <td>{instructor.name}</td>
-                  <td>{instructor.userId ?? "-"}</td>
+                  <td>{instructor.fullName}</td>
                   {isAdmin && (
                     <td>
                       <button
@@ -203,29 +228,35 @@ const InstructorsPage = () => {
         >
           <form onSubmit={handleUpdate} className="form-grid">
             <div className="form-group">
-              <label>Name</label>
+              <label>Full name</label>
               <input
-                name="name"
+                name="fullName"
                 className="input"
-                value={editForm.name}
+                value={editForm.fullName}
                 onChange={(event) =>
-                  setEditForm((prev) => ({ ...prev, name: event.target.value }))
+                  setEditForm((prev) => ({ ...prev, fullName: event.target.value }))
                 }
                 required
               />
             </div>
             <div className="form-group">
-              <label>User Id</label>
-              <input
+              <label>Account</label>
+              <select
                 name="userId"
-                type="number"
-                className="input"
+                className="select"
                 value={editForm.userId}
                 onChange={(event) =>
                   setEditForm((prev) => ({ ...prev, userId: event.target.value }))
                 }
                 required
-              />
+              >
+                <option value="">Select an instructor account</option>
+                {instructorUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.username} ({user.email})
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="actions">
               <button className="btn btn-primary" type="submit">

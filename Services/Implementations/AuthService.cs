@@ -1,28 +1,26 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.Extensions.Options;
 
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IStudentRepository _studentRepository;
+    private readonly IInstructorRepository _instructorRepository;
     private readonly JwtSettings _jwtSettings;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public AuthService(
         IUserRepository userRepository,
-        IOptions<JwtSettings> jwtOptions,
-        IHttpContextAccessor httpContextAccessor)
+        IStudentRepository studentRepository,
+        IInstructorRepository instructorRepository,
+        IOptions<JwtSettings> jwtOptions)
     {
         _userRepository = userRepository;
+        _studentRepository = studentRepository;
+        _instructorRepository = instructorRepository;
         _jwtSettings = jwtOptions.Value;
-        _httpContextAccessor = httpContextAccessor;
-    }
-
-    public async Task<bool> UsernameExistsAsync(string username)
-    {
-        return await _userRepository.UsernameExistsAsync(username);
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
@@ -31,55 +29,91 @@ public class AuthService : IAuthService
         if (resolvedRole == null)
             throw new InvalidOperationException("Invalid role.");
 
+        var normalizedUsername = dto.Username.Trim();
+        var normalizedEmail = dto.Email.Trim();
+
+        if (await _userRepository.UsernameExistsAsync(normalizedUsername))
+            throw new ConflictException("Username already exists.");
+
+        if (await _userRepository.EmailExistsAsync(normalizedEmail))
+            throw new ConflictException("Email already exists.");
+
+        if (resolvedRole != RoleConstants.Admin && string.IsNullOrWhiteSpace(dto.FullName))
+            throw new InvalidOperationException("Full name is required for students and instructors.");
+
         var user = new User
         {
-            Username = dto.Username,
+            Username = normalizedUsername,
+            Email = normalizedEmail,
             PasswordHash = PasswordHasher.Hash(dto.Password),
             Role = resolvedRole,
-            TokenVersion = 0
+            CreatedAt = DateTime.UtcNow
         };
 
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();
 
+        if (resolvedRole == RoleConstants.Student)
+        {
+            var student = new Student
+            {
+                FullName = dto.FullName!.Trim(),
+                UserId = user.Id
+            };
+
+            await _studentRepository.AddAsync(student);
+            await _studentRepository.SaveChangesAsync();
+        }
+
+        if (resolvedRole == RoleConstants.Instructor)
+        {
+            var instructor = new Instructor
+            {
+                FullName = dto.FullName!.Trim(),
+                Bio = dto.Bio?.Trim() ?? string.Empty,
+                UserId = user.Id
+            };
+
+            await _instructorRepository.AddAsync(instructor);
+            await _instructorRepository.SaveChangesAsync();
+        }
+
         return new AuthResponseDto
         {
-            AccessToken = string.Empty,
-            Username = user.Username,
-            Role = user.Role
+            AccessToken = GenerateToken(user),
+            User = MapUser(user)
         };
     }
 
     public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
     {
-        var user = await _userRepository.GetByUsernameAsync(dto.Username);
-
+        var user = await _userRepository.GetByUsernameAsync(dto.Username.Trim());
         if (user == null)
             return null;
 
-        if (user.PasswordHash != PasswordHasher.Hash(dto.Password))
+        if (!PasswordHasher.Verify(dto.Password, user.PasswordHash))
             return null;
 
         return new AuthResponseDto
         {
             AccessToken = GenerateToken(user),
-            Username = user.Username,
-            Role = user.Role
+            User = MapUser(user)
         };
     }
 
-    public async Task<bool> RevokeAsync()
+    public async Task<List<UserResponseDto>> GetAllUsersAsync()
     {
-        var username = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Name)?.Value;
-        if (string.IsNullOrWhiteSpace(username))
-            return false;
+        var users = await _userRepository.GetAllAsync();
+        return users.Select(MapUser).ToList();
+    }
 
-        var user = await _userRepository.GetByUsernameForUpdateAsync(username);
-
+    public async Task<bool> DeleteUserAsync(int userId)
+    {
+        var user = await _userRepository.GetByIdForUpdateAsync(userId);
         if (user == null)
             return false;
 
-        user.TokenVersion += 1;
+        await _userRepository.DeleteAsync(user);
         await _userRepository.SaveChangesAsync();
         return true;
     }
@@ -88,9 +122,9 @@ public class AuthService : IAuthService
     {
         var claims = new[]
         {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role),
-            new Claim("token_version", user.TokenVersion.ToString())
+            new Claim(ClaimTypes.Role, user.Role)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
@@ -108,18 +142,27 @@ public class AuthService : IAuthService
 
     private static string? ResolveRole(string role)
     {
-        if (string.IsNullOrWhiteSpace(role))
-            return RoleConstants.User;
-
         if (string.Equals(role, RoleConstants.Admin, StringComparison.OrdinalIgnoreCase))
             return RoleConstants.Admin;
 
         if (string.Equals(role, RoleConstants.Instructor, StringComparison.OrdinalIgnoreCase))
             return RoleConstants.Instructor;
 
-        if (string.Equals(role, RoleConstants.User, StringComparison.OrdinalIgnoreCase))
-            return RoleConstants.User;
+        if (string.Equals(role, RoleConstants.Student, StringComparison.OrdinalIgnoreCase))
+            return RoleConstants.Student;
 
         return null;
+    }
+
+    private static UserResponseDto MapUser(User user)
+    {
+        return new UserResponseDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            Email = user.Email,
+            Role = user.Role,
+            CreatedAt = user.CreatedAt
+        };
     }
 }

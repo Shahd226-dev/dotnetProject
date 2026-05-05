@@ -9,8 +9,8 @@ const authService = {
     const response = await api.post("/auth/register", payload);
     return response.data;
   },
-  async revoke() {
-    const response = await api.post("/auth/revoke");
+  async getUsers() {
+    const response = await api.get("/auth/users");
     return response.data;
   }
 };

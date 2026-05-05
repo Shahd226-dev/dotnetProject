@@ -2,12 +2,11 @@ using Microsoft.EntityFrameworkCore;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Student> Students { get; set; }
     public DbSet<Course> Courses { get; set; }
     public DbSet<Instructor> Instructors { get; set; }
-    public DbSet<InstructorProfile> InstructorProfiles { get; set; }
     public DbSet<Enrollment> Enrollments { get; set; }
     public DbSet<User> Users { get; set; }
 
@@ -34,26 +33,17 @@ public class AppDbContext : DbContext
             .HasForeignKey(c => c.InstructorId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Instructor>()
-            .HasOne(i => i.Profile)
-            .WithOne(p => p.Instructor)
-            .HasForeignKey<InstructorProfile>(p => p.InstructorId);
-
         modelBuilder.Entity<Student>()
             .HasOne(s => s.User)
-            .WithOne(u => u.StudentProfile)
+            .WithOne(u => u.Student)
             .HasForeignKey<Student>(s => s.UserId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Instructor>()
             .HasOne(i => i.User)
-            .WithOne(u => u.InstructorProfile)
+            .WithOne(u => u.Instructor)
             .HasForeignKey<Instructor>(i => i.UserId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        modelBuilder.Entity<Student>()
-            .HasIndex(s => s.Email)
-            .IsUnique();
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Student>()
             .HasIndex(s => s.UserId)
@@ -65,6 +55,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username)
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
             .IsUnique();
     }
 }

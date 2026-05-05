@@ -19,6 +19,7 @@ public class ExceptionMiddleware
         {
             var (statusCode, message) = ex switch
             {
+                ConflictException => (StatusCodes.Status409Conflict, ex.Message),
                 InvalidOperationException => (StatusCodes.Status400BadRequest, ex.Message),
                 ArgumentException => (StatusCodes.Status400BadRequest, ex.Message),
                 KeyNotFoundException => (StatusCodes.Status404NotFound, ex.Message),

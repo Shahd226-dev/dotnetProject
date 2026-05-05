@@ -1,19 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
-    private readonly JwtSettings _jwtSettings;
 
-    public AuthController(IAuthService authService, IOptions<JwtSettings> jwtOptions)
+    public AuthController(IAuthService authService)
     {
         _authService = authService;
-        _jwtSettings = jwtOptions.Value;
     }
 
     [AllowAnonymous]
@@ -23,8 +20,6 @@ public class AuthController : ControllerBase
         var authResponse = await _authService.LoginAsync(dto);
         if (authResponse == null)
             return Unauthorized(ApiResponse<object?>.Fail("Invalid username or password."));
-
-        SetAuthCookie(authResponse.AccessToken);
         return Ok(ApiResponse<AuthResponseDto>.Ok(authResponse, "Login successful."));
     }
 
@@ -32,48 +27,26 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        var usernameExists = await _authService.UsernameExistsAsync(dto.Username);
-        if (usernameExists)
-            return Conflict(ApiResponse<object?>.Fail("Username already exists."));
-
         var registeredUser = await _authService.RegisterAsync(dto);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<AuthResponseDto>.Ok(registeredUser, "User registered."));
     }
 
-    [Authorize]
-    [HttpPost("revoke")]
-    public async Task<IActionResult> Revoke()
+    [Authorize(Roles = RoleConstants.Admin)]
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers()
     {
-        var revoked = await _authService.RevokeAsync();
-        if (!revoked)
-            return Unauthorized(ApiResponse<object?>.Fail("Unauthorized."));
-
-        DeleteAuthCookie();
-        return Ok(ApiResponse<object?>.Ok(null, "Token revoked."));
+        var users = await _authService.GetAllUsersAsync();
+        return Ok(ApiResponse<List<UserResponseDto>>.Ok(users, "Users retrieved."));
     }
 
-    private void SetAuthCookie(string accessToken)
+    [Authorize(Roles = RoleConstants.Admin)]
+    [HttpDelete("users/{id}")]
+    public async Task<IActionResult> DeleteUser(int id)
     {
-        var options = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
-            Path = "/"
-        };
+        var deleted = await _authService.DeleteUserAsync(id);
+        if (!deleted)
+            return NotFound(ApiResponse<object?>.Fail("User not found."));
 
-        Response.Cookies.Append("access_token", accessToken, options);
-    }
-
-    private void DeleteAuthCookie()
-    {
-        Response.Cookies.Delete("access_token", new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Strict,
-            Path = "/"
-        });
+        return Ok(ApiResponse<object?>.Ok(null, "User deleted."));
     }
 }

@@ -1,20 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Uni\\Web\\CourseManagementAPI\\CourseManagementAPI.csproj": {}
+    "D:\\AAST\\Semester 10\\Web Engineering\\shahd\\dotnetProject\\CourseManagementAPI.csproj": {}
   },
   "projects": {
-    "E:\\Uni\\Web\\CourseManagementAPI\\CourseManagementAPI.csproj": {
+    "D:\\AAST\\Semester 10\\Web Engineering\\shahd\\dotnetProject\\CourseManagementAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Uni\\Web\\CourseManagementAPI\\CourseManagementAPI.csproj",
+        "projectUniqueName": "D:\\AAST\\Semester 10\\Web Engineering\\shahd\\dotnetProject\\CourseManagementAPI.csproj",
         "projectName": "CourseManagementAPI",
-        "projectPath": "E:\\Uni\\Web\\CourseManagementAPI\\CourseManagementAPI.csproj",
-        "packagesPath": "C:\\Users\\Dell\\.nuget\\packages\\",
-        "outputPath": "E:\\Uni\\Web\\CourseManagementAPI\\obj\\",
+        "projectPath": "D:\\AAST\\Semester 10\\Web Engineering\\shahd\\dotnetProject\\CourseManagementAPI.csproj",
+        "packagesPath": "C:\\Users\\Mohamed Khaled\\.nuget\\packages\\",
+        "outputPath": "D:\\AAST\\Semester 10\\Web Engineering\\shahd\\dotnetProject\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\Dell\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Mohamed Khaled\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -34,11 +38,6 @@
           "warnAsError": [
             "NU1605"
           ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -101,7 +100,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.419/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

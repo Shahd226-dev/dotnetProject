@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Hangfire;
-using Hangfire.MemoryStorage;
-using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,12 +37,6 @@ builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddHangfire(config => config
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseMemoryStorage());
-builder.Services.AddHangfireServer();
-
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -62,35 +53,6 @@ builder.Services.AddAuthentication("Bearer")
 
         options.Events = new JwtBearerEvents
         {
-            OnMessageReceived = context =>
-            {
-                if (string.IsNullOrWhiteSpace(context.Token) &&
-                    context.Request.Cookies.TryGetValue("access_token", out var cookieToken))
-                {
-                    context.Token = cookieToken;
-                }
-
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = async context =>
-            {
-                var username = context.Principal?.FindFirstValue(ClaimTypes.Name);
-                var tokenVersionRaw = context.Principal?.FindFirst("token_version")?.Value;
-
-                if (string.IsNullOrWhiteSpace(username) || !int.TryParse(tokenVersionRaw, out var tokenVersion))
-                {
-                    context.Fail("Invalid token claims.");
-                    return;
-                }
-
-                var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                var isValid = await dbContext.Users
-                    .AsNoTracking()
-                    .AnyAsync(u => u.Username == username && u.TokenVersion == tokenVersion);
-
-                if (!isValid)
-                    context.Fail("Token has been revoked.");
-            },
             OnChallenge = context =>
             {
                 if (context.Response.HasStarted)
@@ -112,7 +74,13 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 
+builder.Services.AddAuthorization();
+
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -174,7 +142,6 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
-app.UseHangfireDashboard("/hangfire");
 
 app.UseMiddleware<ExceptionMiddleware>();
 

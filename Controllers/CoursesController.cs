@@ -31,8 +31,8 @@ public class CoursesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = RoleConstants.Admin)]
-    public async Task<IActionResult> Create(CreateCourseDto dto)
+    [Authorize(Roles = RoleConstants.Admin + "," + RoleConstants.Instructor)]
+    public async Task<IActionResult> Create(CourseCreateDto dto)
     {
         var created = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = created.Id },
@@ -40,13 +40,24 @@ public class CoursesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = RoleConstants.Admin)]
-    public async Task<IActionResult> Update(int id, UpdateCourseDto dto)
+    [Authorize(Roles = RoleConstants.Admin + "," + RoleConstants.Instructor)]
+    public async Task<IActionResult> Update(int id, CourseUpdateDto dto)
     {
         var updated = await _service.UpdateAsync(id, dto);
         if (updated == null)
             return NotFound(ApiResponse<object?>.Fail("Course not found."));
 
         return Ok(ApiResponse<CourseResponseDto>.Ok(updated, "Course updated."));
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = RoleConstants.Admin + "," + RoleConstants.Instructor)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var deleted = await _service.DeleteAsync(id);
+        if (!deleted)
+            return NotFound(ApiResponse<object?>.Fail("Course not found."));
+
+        return Ok(ApiResponse<object?>.Ok(null, "Course deleted."));
     }
 }

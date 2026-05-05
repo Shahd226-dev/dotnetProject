@@ -14,10 +14,37 @@ public class EnrollmentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = RoleConstants.Instructor + "," + RoleConstants.Admin)]
-    public async Task<IActionResult> Enroll(EnrollStudentDto dto)
+    [Authorize(Roles = RoleConstants.Student)]
+    public async Task<IActionResult> Enroll(EnrollmentDto dto)
     {
-        await _service.EnrollAsync(dto);
-        return Ok(ApiResponse<object?>.Ok(null, "Student enrolled."));
+        var enrollment = await _service.EnrollAsync(dto);
+        return Ok(ApiResponse<EnrollmentDto>.Ok(enrollment, "Enrolled successfully."));
+    }
+
+    [HttpDelete("{courseId}")]
+    [Authorize(Roles = RoleConstants.Student)]
+    public async Task<IActionResult> Unenroll(int courseId)
+    {
+        var removed = await _service.UnenrollAsync(courseId);
+        if (!removed)
+            return NotFound(ApiResponse<object?>.Fail("Enrollment not found."));
+
+        return Ok(ApiResponse<object?>.Ok(null, "Unenrolled successfully."));
+    }
+
+    [HttpGet("me")]
+    [Authorize(Roles = RoleConstants.Student)]
+    public async Task<IActionResult> GetMyEnrollments()
+    {
+        var enrollments = await _service.GetMyEnrollmentsAsync();
+        return Ok(ApiResponse<List<EnrollmentDto>>.Ok(enrollments, "Enrollments retrieved."));
+    }
+
+    [HttpGet("instructor")]
+    [Authorize(Roles = RoleConstants.Instructor)]
+    public async Task<IActionResult> GetInstructorEnrollments()
+    {
+        var enrollments = await _service.GetEnrollmentsForInstructorAsync();
+        return Ok(ApiResponse<List<EnrollmentDto>>.Ok(enrollments, "Enrollments retrieved."));
     }
 }

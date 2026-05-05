@@ -17,83 +17,103 @@ All responses follow:
 - POST /api/auth/login
   - Access: Anonymous
   - Body: LoginDto
-  - Returns: accessToken, username, role and sets HttpOnly access token cookie
+  - Returns: AuthResponseDto (accessToken + user)
 
 - POST /api/auth/register
   - Access: Anonymous
   - Body: RegisterDto
-  - Returns: username and role
+  - Returns: AuthResponseDto (accessToken + user)
 
-- POST /api/auth/revoke
-  - Access: Authenticated
-  - Returns: revokes active tokens for current user and clears auth cookie
+- GET /api/auth/users
+  - Access: Admin
+  - Returns: list of UserResponseDto
+
+- DELETE /api/auth/users/{id}
+  - Access: Admin
+  - Returns: success message
 
 ## Students
 
 - GET /api/students
-  - Access: Authenticated
-  - Returns: list of StudentResponseDto (id, name, email, userId)
+  - Access: Admin
+  - Returns: list of StudentDto (id, fullName, userId)
 
 - GET /api/students/{id}
-  - Access: Authenticated
-  - Returns: StudentResponseDto (id, name, email, userId)
+  - Access: Admin
+  - Returns: StudentDto (id, fullName, userId)
 
 - POST /api/students
   - Access: Admin
-  - Body: CreateStudentDto
-  - Returns: created StudentResponseDto
+  - Body: StudentDto
+  - Returns: created StudentDto
 
 - PUT /api/students/{id}
   - Access: Admin
-  - Body: UpdateStudentDto
-  - Returns: updated StudentResponseDto
+  - Body: StudentDto
+  - Returns: updated StudentDto
 
 ## Instructors
 
 - GET /api/instructors
-  - Access: Authenticated
-  - Returns: list of InstructorResponseDto
+  - Access: Admin
+  - Returns: list of InstructorDto
 
 - GET /api/instructors/{id}
-  - Access: Authenticated
-  - Returns: InstructorResponseDto
+  - Access: Admin
+  - Returns: InstructorDto
 
 - POST /api/instructors
   - Access: Admin
-  - Body: CreateInstructorDto
-  - Returns: created InstructorResponseDto
+  - Body: InstructorDto
+  - Returns: created InstructorDto
 
 - PUT /api/instructors/{id}
   - Access: Admin
-  - Body: UpdateInstructorDto
-  - Returns: updated InstructorResponseDto
+  - Body: InstructorDto
+  - Returns: updated InstructorDto
 
 ## Courses
 
 - GET /api/courses
-  - Access: Authenticated
-  - Returns: list of CourseResponseDto (id, title, instructorId)
+  - Access: Student, Instructor, Admin
+  - Returns: list of CourseResponseDto (id, title, description, instructorId)
 
 - GET /api/courses/{id}
-  - Access: Authenticated
-  - Returns: CourseResponseDto (id, title, instructorId)
+  - Access: Student, Instructor, Admin
+  - Returns: CourseResponseDto (id, title, description, instructorId)
 
 - POST /api/courses
-  - Access: Admin
-  - Body: CreateCourseDto
+  - Access: Admin, Instructor
+  - Body: CourseCreateDto
   - Returns: created CourseResponseDto
 
 - PUT /api/courses/{id}
-  - Access: Admin
-  - Body: UpdateCourseDto
+  - Access: Admin, Instructor
+  - Body: CourseUpdateDto
   - Returns: updated CourseResponseDto
+
+- DELETE /api/courses/{id}
+  - Access: Admin, Instructor
+  - Returns: success message
 
 ## Enrollments
 
 - POST /api/enrollments
-  - Access: Instructor, Admin
-  - Body: EnrollStudentDto
+  - Access: Student
+  - Body: EnrollmentDto (courseId required)
+  - Returns: EnrollmentDto
+
+- DELETE /api/enrollments/{courseId}
+  - Access: Student
   - Returns: success message
+
+- GET /api/enrollments/me
+  - Access: Student
+  - Returns: list of EnrollmentDto
+
+- GET /api/enrollments/instructor
+  - Access: Instructor
+  - Returns: list of EnrollmentDto
 
 ## Validation Summary
 
@@ -106,7 +126,3 @@ Validation attributes include:
 - Range
 
 Invalid requests return 400 Bad Request under ApiController model validation behavior.
-
-## Background Jobs
-
-- Hangfire dashboard: /hangfire
