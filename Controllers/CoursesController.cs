@@ -32,18 +32,18 @@ public class CoursesController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = RoleConstants.Admin + "," + RoleConstants.Instructor)]
-    public async Task<IActionResult> Create(CourseCreateDto dto)
+    public async Task<IActionResult> Create(CreateCourseDto dto, [FromQuery] int? instructorId)
     {
-        var created = await _service.CreateAsync(dto);
+        var created = await _service.CreateAsync(dto, instructorId);
         return CreatedAtAction(nameof(GetById), new { id = created.Id },
             ApiResponse<CourseResponseDto>.Ok(created, "Course created."));
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = RoleConstants.Admin + "," + RoleConstants.Instructor)]
-    public async Task<IActionResult> Update(int id, CourseUpdateDto dto)
+    public async Task<IActionResult> Update(int id, UpdateCourseDto dto, [FromQuery] int? instructorId)
     {
-        var updated = await _service.UpdateAsync(id, dto);
+        var updated = await _service.UpdateAsync(id, dto, instructorId);
         if (updated == null)
             return NotFound(ApiResponse<object?>.Fail("Course not found."));
 

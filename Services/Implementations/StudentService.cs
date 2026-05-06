@@ -14,23 +14,22 @@ public class StudentService : IStudentService
         _instructorRepository = instructorRepository;
     }
 
-    public async Task<List<StudentDto>> GetAllAsync()
+    public async Task<List<StudentResponseDto>> GetAllAsync()
     {
         var students = await _studentRepository.GetAllAsync();
 
         return students
-            .Select(s => new StudentDto
+            .Select(s => new StudentResponseDto
             {
                 Id = s.Id,
-                FullName = s.FullName,
-                UserId = s.UserId
+                FullName = s.FullName
             })
             .ToList();
     }
 
-    public async Task<StudentDto> CreateAsync(StudentDto dto)
+    public async Task<StudentResponseDto> CreateAsync(CreateStudentDto dto, int userId)
     {
-        var user = await _userRepository.GetByIdAsync(dto.UserId);
+        var user = await _userRepository.GetByIdAsync(userId);
 
         if (user == null)
             throw new InvalidOperationException("User not found.");
@@ -38,12 +37,12 @@ public class StudentService : IStudentService
         if (!string.Equals(user.Role, RoleConstants.Student, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Student must be linked to a user with role 'Student'.");
 
-        var linkedStudentExists = await _studentRepository.UserLinkedToStudentAsync(dto.UserId);
+        var linkedStudentExists = await _studentRepository.UserLinkedToStudentAsync(userId);
 
         if (linkedStudentExists)
             throw new ConflictException("This user is already linked to another student.");
 
-        var linkedInstructorExists = await _instructorRepository.UserLinkedToInstructorAsync(dto.UserId);
+        var linkedInstructorExists = await _instructorRepository.UserLinkedToInstructorAsync(userId);
 
         if (linkedInstructorExists)
             throw new ConflictException("This user is already linked to an instructor.");
@@ -51,41 +50,39 @@ public class StudentService : IStudentService
         var student = new Student
         {
             FullName = dto.FullName.Trim(),
-            UserId = dto.UserId
+            UserId = userId
         };
 
         await _studentRepository.AddAsync(student);
         await _studentRepository.SaveChangesAsync();
 
-        return new StudentDto
+        return new StudentResponseDto
         {
             Id = student.Id,
-            FullName = student.FullName,
-            UserId = student.UserId
+            FullName = student.FullName
         };
     }
 
-    public async Task<StudentDto?> GetByIdAsync(int id)
+    public async Task<StudentResponseDto?> GetByIdAsync(int id)
     {
         var student = await _studentRepository.GetByIdAsync(id);
 
         if (student == null)
             return null;
 
-        return new StudentDto
+        return new StudentResponseDto
         {
             Id = student.Id,
-            FullName = student.FullName,
-            UserId = student.UserId
+            FullName = student.FullName
         };
     }
 
-    public async Task<StudentDto?> UpdateAsync(int id, StudentDto dto)
+    public async Task<StudentResponseDto?> UpdateAsync(int id, UpdateStudentDto dto)
     {
         var student = await _studentRepository.GetByIdForUpdateAsync(id);
         if (student == null) return null;
 
-        var user = await _userRepository.GetByIdAsync(dto.UserId);
+        var user = await _userRepository.GetByIdAsync(student.UserId);
 
         if (user == null)
             throw new InvalidOperationException("User not found.");
@@ -93,25 +90,13 @@ public class StudentService : IStudentService
         if (!string.Equals(user.Role, RoleConstants.Student, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Student must be linked to a user with role 'Student'.");
 
-        var linkedStudentExists = await _studentRepository.UserLinkedToStudentAsync(dto.UserId, id);
-
-        if (linkedStudentExists)
-            throw new ConflictException("This user is already linked to another student.");
-
-        var linkedInstructorExists = await _instructorRepository.UserLinkedToInstructorAsync(dto.UserId);
-
-        if (linkedInstructorExists)
-            throw new ConflictException("This user is already linked to an instructor.");
-
         student.FullName = dto.FullName.Trim();
-        student.UserId = dto.UserId;
         await _studentRepository.SaveChangesAsync();
 
-        return new StudentDto
+        return new StudentResponseDto
         {
             Id = student.Id,
-            FullName = student.FullName,
-            UserId = student.UserId
+            FullName = student.FullName
         };
     }
 }

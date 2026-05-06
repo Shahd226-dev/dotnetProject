@@ -1,26 +1,12 @@
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getDashboardPathForRole } from "../utils/roleRoutes";
 
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { role } = useAuth();
+  const nextPath = getDashboardPathForRole(role);
 
-  return (
-    <section className="card">
-      <div className="page-header">
-        <h2>Dashboard</h2>
-        <p className="muted">
-          Welcome back{user?.username ? `, ${user.username}` : ""}. Track
-          enrollments, courses, and academic activity at a glance.
-        </p>
-      </div>
-      <div className="card card-muted">
-        <h3>Quick actions</h3>
-        <p className="muted">
-          Use the navigation to manage students, instructors, courses, and
-          enrollments.
-        </p>
-      </div>
-    </section>
-  );
+  return <Navigate to={nextPath} replace />;
 };
 
 export default DashboardPage;

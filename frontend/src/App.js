@@ -4,10 +4,14 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import InstructorDashboardPage from "./pages/InstructorDashboardPage";
+import StudentDashboardPage from "./pages/StudentDashboardPage";
 import StudentsPage from "./pages/StudentsPage";
 import InstructorsPage from "./pages/InstructorsPage";
 import CoursesPage from "./pages/CoursesPage";
 import EnrollmentsPage from "./pages/EnrollmentsPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import "./App.css";
@@ -28,9 +32,41 @@ const App = () => {
           }
         />
         <Route
+          path="/dashboard/admin"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/instructor"
+          element={
+            <ProtectedRoute allowedRoles={["Instructor"]}>
+              <InstructorDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/student"
+          element={
+            <ProtectedRoute allowedRoles={["Student"]}>
+              <StudentDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <AdminUsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/students"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]}>
               <StudentsPage />
             </ProtectedRoute>
           }
@@ -38,7 +74,7 @@ const App = () => {
         <Route
           path="/instructors"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]}>
               <InstructorsPage />
             </ProtectedRoute>
           }
@@ -54,7 +90,7 @@ const App = () => {
         <Route
           path="/enrollments"
           element={
-            <ProtectedRoute allowedRoles={["Instructor", "Admin"]}>
+            <ProtectedRoute allowedRoles={["Instructor", "Student"]}>
               <EnrollmentsPage />
             </ProtectedRoute>
           }

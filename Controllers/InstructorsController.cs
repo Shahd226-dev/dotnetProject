@@ -18,7 +18,7 @@ public class InstructorsController : ControllerBase
     public async Task<IActionResult> Get()
     {
         var instructors = await _service.GetAllAsync();
-        return Ok(ApiResponse<List<InstructorDto>>.Ok(instructors, "Instructors retrieved."));
+        return Ok(ApiResponse<List<InstructorResponseDto>>.Ok(instructors, "Instructors retrieved."));
     }
 
     [HttpGet("{id}")]
@@ -29,26 +29,26 @@ public class InstructorsController : ControllerBase
         if (instructor == null)
             return NotFound(ApiResponse<object?>.Fail("Instructor not found."));
 
-        return Ok(ApiResponse<InstructorDto>.Ok(instructor, "Instructor retrieved."));
+        return Ok(ApiResponse<InstructorResponseDto>.Ok(instructor, "Instructor retrieved."));
     }
 
     [HttpPost]
     [Authorize(Roles = RoleConstants.Admin)]
-    public async Task<IActionResult> Create(InstructorDto dto)
+    public async Task<IActionResult> Create(CreateInstructorDto dto, [FromQuery] int userId)
     {
-        var created = await _service.CreateAsync(dto);
+        var created = await _service.CreateAsync(dto, userId);
         return CreatedAtAction(nameof(GetById), new { id = created.Id },
-            ApiResponse<InstructorDto>.Ok(created, "Instructor created."));
+            ApiResponse<InstructorResponseDto>.Ok(created, "Instructor created."));
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = RoleConstants.Admin)]
-    public async Task<IActionResult> Update(int id, InstructorDto dto)
+    public async Task<IActionResult> Update(int id, UpdateInstructorDto dto)
     {
         var updated = await _service.UpdateAsync(id, dto);
         if (updated == null)
             return NotFound(ApiResponse<object?>.Fail("Instructor not found."));
 
-        return Ok(ApiResponse<InstructorDto>.Ok(updated, "Instructor updated."));
+        return Ok(ApiResponse<InstructorResponseDto>.Ok(updated, "Instructor updated."));
     }
 }

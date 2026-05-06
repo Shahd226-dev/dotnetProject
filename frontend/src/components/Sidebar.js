@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Sidebar = ({ collapsed }) => {
-  const { isAuthenticated, isAdmin, isInstructor } = useAuth();
+  const { isAuthenticated, isAdmin, isInstructor, role } = useAuth();
 
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -17,19 +17,29 @@ const Sidebar = ({ collapsed }) => {
         </NavLink>
         {isAuthenticated && (
           <>
-            <NavLink to="/students">
-              <span className="nav-icon">S</span>
-              {!collapsed && "Students"}
-            </NavLink>
-            <NavLink to="/instructors">
-              <span className="nav-icon">I</span>
-              {!collapsed && "Instructors"}
-            </NavLink>
+            {isAdmin && (
+              <NavLink to="/admin/users">
+                <span className="nav-icon">U</span>
+                {!collapsed && "Users"}
+              </NavLink>
+            )}
+            {isAdmin && (
+              <NavLink to="/students">
+                <span className="nav-icon">S</span>
+                {!collapsed && "Students"}
+              </NavLink>
+            )}
+            {isAdmin && (
+              <NavLink to="/instructors">
+                <span className="nav-icon">I</span>
+                {!collapsed && "Instructors"}
+              </NavLink>
+            )}
             <NavLink to="/courses">
               <span className="nav-icon">C</span>
               {!collapsed && "Courses"}
             </NavLink>
-            {(isInstructor || isAdmin) && (
+            {(role === "Student" || isInstructor) && (
               <NavLink to="/enrollments">
                 <span className="nav-icon">E</span>
                 {!collapsed && "Enrollments"}

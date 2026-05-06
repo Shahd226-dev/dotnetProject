@@ -22,7 +22,7 @@ public class EnrollmentService : IEnrollmentService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<EnrollmentDto> EnrollAsync(EnrollmentDto dto)
+    public async Task<EnrollmentResponseDto> EnrollAsync(CreateEnrollmentDto dto)
     {
         var (userId, role) = GetCurrentUser();
         if (!string.Equals(role, RoleConstants.Student, StringComparison.OrdinalIgnoreCase))
@@ -32,8 +32,8 @@ public class EnrollmentService : IEnrollmentService
         if (student == null)
             throw new InvalidOperationException("Student not found.");
 
-        var courseExists = await _courseRepository.ExistsAsync(dto.CourseId);
-        if (!courseExists)
+        var course = await _courseRepository.GetByIdAsync(dto.CourseId);
+        if (course == null)
             throw new InvalidOperationException("Course not found.");
 
         var alreadyEnrolled = await _enrollmentRepository.EnrollmentExistsAsync(student.Id, dto.CourseId);
@@ -50,10 +50,18 @@ public class EnrollmentService : IEnrollmentService
         await _enrollmentRepository.AddAsync(enrollment);
         await _enrollmentRepository.SaveChangesAsync();
 
-        return new EnrollmentDto
+        return new EnrollmentResponseDto
         {
-            StudentId = enrollment.StudentId,
-            CourseId = enrollment.CourseId,
+            Course = new CourseSummaryDto
+            {
+                Id = course.Id,
+                Title = course.Title
+            },
+            Student = new StudentSummaryDto
+            {
+                Id = student.Id,
+                FullName = student.FullName
+            },
             EnrolledAt = enrollment.EnrolledAt
         };
     }
@@ -77,7 +85,7 @@ public class EnrollmentService : IEnrollmentService
         return true;
     }
 
-    public async Task<List<EnrollmentDto>> GetMyEnrollmentsAsync()
+    public async Task<List<EnrollmentResponseDto>> GetMyEnrollmentsAsync()
     {
         var (userId, role) = GetCurrentUser();
         if (!string.Equals(role, RoleConstants.Student, StringComparison.OrdinalIgnoreCase))
@@ -89,16 +97,24 @@ public class EnrollmentService : IEnrollmentService
 
         var enrollments = await _enrollmentRepository.GetByStudentIdAsync(student.Id);
         return enrollments
-            .Select(e => new EnrollmentDto
+            .Select(e => new EnrollmentResponseDto
             {
-                StudentId = e.StudentId,
-                CourseId = e.CourseId,
+                Course = new CourseSummaryDto
+                {
+                    Id = e.Course?.Id ?? e.CourseId,
+                    Title = e.Course?.Title ?? string.Empty
+                },
+                Student = new StudentSummaryDto
+                {
+                    Id = e.Student?.Id ?? e.StudentId,
+                    FullName = e.Student?.FullName ?? string.Empty
+                },
                 EnrolledAt = e.EnrolledAt
             })
             .ToList();
     }
 
-    public async Task<List<EnrollmentDto>> GetEnrollmentsForInstructorAsync()
+    public async Task<List<EnrollmentResponseDto>> GetEnrollmentsForInstructorAsync()
     {
         var (userId, role) = GetCurrentUser();
         if (!string.Equals(role, RoleConstants.Instructor, StringComparison.OrdinalIgnoreCase))
@@ -110,10 +126,18 @@ public class EnrollmentService : IEnrollmentService
 
         var enrollments = await _enrollmentRepository.GetByInstructorIdAsync(instructor.Id);
         return enrollments
-            .Select(e => new EnrollmentDto
+            .Select(e => new EnrollmentResponseDto
             {
-                StudentId = e.StudentId,
-                CourseId = e.CourseId,
+                Course = new CourseSummaryDto
+                {
+                    Id = e.Course?.Id ?? e.CourseId,
+                    Title = e.Course?.Title ?? string.Empty
+                },
+                Student = new StudentSummaryDto
+                {
+                    Id = e.Student?.Id ?? e.StudentId,
+                    FullName = e.Student?.FullName ?? string.Empty
+                },
                 EnrolledAt = e.EnrolledAt
             })
             .ToList();

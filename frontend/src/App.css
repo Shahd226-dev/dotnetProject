@@ -1,32 +1,45 @@
 :root {
-  --bg: #f3f5f9;
+  --bg: #f6f4f0;
   --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --primary: #4f46e5;
-  --primary-dark: #4338ca;
-  --secondary: #0f172a;
-  --neutral: #64748b;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --shadow-sm: 0 4px 10px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12);
-  --radius-lg: 16px;
+  --surface-muted: #f1ede6;
+  --primary: #16807d;
+  --primary-dark: #0f5f5d;
+  --accent: #d97d36;
+  --secondary: #223036;
+  --neutral: #6f6a63;
+  --border: #e2ddd4;
+  --text: #2a2621;
+  --success: #1b7f5a;
+  --danger: #b42318;
+  --shadow-sm: 0 6px 14px rgba(26, 27, 30, 0.08);
+  --shadow-md: 0 16px 32px rgba(26, 27, 30, 0.14);
+  --radius-lg: 18px;
   --radius-md: 12px;
-  --radius-sm: 8px;
+  --radius-sm: 10px;
 }
 
 .app-shell {
   display: flex;
   min-height: 100vh;
-  background: var(--bg);
+  background: radial-gradient(circle at top, #fdfbf7 0%, var(--bg) 55%, #f0ebe2 100%);
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  background: radial-gradient(circle at top, #fdfbf7 0%, var(--bg) 60%, #efe7dc 100%);
+}
+
+.auth-content {
+  width: min(460px, 92vw);
 }
 
 .sidebar {
   width: 250px;
-  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-  color: #e2e8f0;
+  background: linear-gradient(180deg, #1e2b2f 0%, #142025 100%);
+  color: #f5f3ee;
   padding: 24px 16px;
   transition: width 0.2s ease;
   position: sticky;
@@ -51,8 +64,8 @@
   width: 12px;
   height: 12px;
   border-radius: 999px;
-  background: var(--primary);
-  box-shadow: 0 0 12px rgba(79, 70, 229, 0.8);
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(217, 125, 54, 0.65);
 }
 
 .sidebar-nav {
@@ -72,11 +85,11 @@
 }
 
 .sidebar-nav a:hover {
-  background: rgba(148, 163, 184, 0.15);
+  background: rgba(245, 243, 238, 0.12);
 }
 
 .sidebar-nav a.active {
-  background: rgba(79, 70, 229, 0.2);
+  background: rgba(22, 128, 125, 0.35);
   color: #fff;
 }
 
@@ -84,7 +97,7 @@
   width: 28px;
   height: 28px;
   border-radius: 9px;
-  background: rgba(148, 163, 184, 0.2);
+  background: rgba(245, 243, 238, 0.15);
   display: grid;
   place-items: center;
   font-weight: 600;
@@ -111,11 +124,18 @@
 
 .topbar h1 {
   font-size: 20px;
+  font-family: "Space Grotesk", sans-serif;
   color: var(--text);
 }
 
 .topbar p {
   font-size: 13px;
+}
+
+.page-header h2,
+.card h3,
+.stat-card h3 {
+  font-family: "Space Grotesk", sans-serif;
 }
 
 .topbar-left {
@@ -225,7 +245,7 @@
 .btn-primary {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 10px 18px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 10px 18px rgba(22, 128, 125, 0.22);
 }
 
 .btn-primary:hover {
@@ -241,6 +261,69 @@
 .btn-danger {
   background: var(--danger);
   color: #fff;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 8px;
+}
+
+.stat-label {
+  color: var(--neutral);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.list-grid {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.list-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(22, 128, 125, 0.12);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .table {
@@ -276,8 +359,8 @@
 }
 
 .badge-neutral {
-  background: #e2e8f0;
-  color: #334155;
+  background: #ece6dc;
+  color: #4a443d;
 }
 
 .user-pill {
@@ -318,7 +401,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 3px solid #dbeafe;
+  border: 3px solid #e9e3d9;
   border-top-color: var(--primary);
   animation: spin 0.9s linear infinite;
 }

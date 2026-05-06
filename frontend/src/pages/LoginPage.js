@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { getDashboardPathForRole } from "../utils/roleRoutes";
 
 const LoginPage = () => {
   const { login, loading } = useAuth();
@@ -19,7 +20,8 @@ const LoginPage = () => {
     const response = await login(form);
     if (response.success) {
       addToast({ type: "success", title: "Welcome back", message: response.message });
-      navigate("/dashboard");
+      const nextPath = getDashboardPathForRole(response.data?.user?.role || "");
+      navigate(nextPath);
       return;
     }
 

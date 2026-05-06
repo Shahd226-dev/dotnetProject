@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import studentService from "../services/studentService";
-import authService from "../services/authService";
+import studentApi from "../api/studentApi";
+import authApi from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import SkeletonTable from "../components/SkeletonTable";
@@ -16,13 +16,13 @@ const StudentsPage = () => {
   const [error, setError] = useState("");
   const [form, setForm] = useState({ fullName: "", userId: "" });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ fullName: "", userId: "" });
+  const [editForm, setEditForm] = useState({ fullName: "" });
 
   const loadStudents = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await studentService.getAll();
+      const response = await studentApi.getAll();
       if (response.success) {
         setStudents(response.data || []);
       } else {
@@ -47,7 +47,7 @@ const StudentsPage = () => {
 
   const loadUsers = async () => {
     try {
-      const response = await authService.getUsers();
+      const response = await authApi.getUsers();
       if (response.success) {
         setUsers(response.data || []);
       }
@@ -63,10 +63,10 @@ const StudentsPage = () => {
     setError("");
 
     try {
-      const response = await studentService.create({
-        fullName: form.fullName,
-        userId: Number(form.userId)
-      });
+      const response = await studentApi.create(
+        { fullName: form.fullName },
+        Number(form.userId)
+      );
       if (response.success) {
         addToast({ type: "success", title: "Student created", message: response.message });
         setStudents((prev) => [...prev, response.data]);
@@ -89,7 +89,7 @@ const StudentsPage = () => {
 
   const startEdit = (student) => {
     setEditingId(student.id);
-    setEditForm({ fullName: student.fullName, userId: student.userId || "" });
+    setEditForm({ fullName: student.fullName });
   };
 
   const handleUpdate = async (event) => {
@@ -98,9 +98,8 @@ const StudentsPage = () => {
     setError("");
 
     try {
-      const response = await studentService.update(editingId, {
-        fullName: editForm.fullName,
-        userId: Number(editForm.userId)
+      const response = await studentApi.update(editingId, {
+        fullName: editForm.fullName
       });
       if (response.success) {
         addToast({ type: "success", title: "Student updated", message: response.message });
@@ -230,25 +229,6 @@ const StudentsPage = () => {
                 }
                 required
               />
-            </div>
-            <div className="form-group">
-              <label>Account</label>
-              <select
-                name="userId"
-                className="select"
-                value={editForm.userId}
-                onChange={(event) =>
-                  setEditForm((prev) => ({ ...prev, userId: event.target.value }))
-                }
-                required
-              >
-                <option value="">Select a student account</option>
-                {studentUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.username} ({user.email})
-                  </option>
-                ))}
-              </select>
             </div>
             <div className="actions">
               <button className="btn btn-primary" type="submit">

@@ -15,10 +15,10 @@ public class EnrollmentsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = RoleConstants.Student)]
-    public async Task<IActionResult> Enroll(EnrollmentDto dto)
+    public async Task<IActionResult> Enroll(CreateEnrollmentDto dto)
     {
         var enrollment = await _service.EnrollAsync(dto);
-        return Ok(ApiResponse<EnrollmentDto>.Ok(enrollment, "Enrolled successfully."));
+        return Ok(ApiResponse<EnrollmentResponseDto>.Ok(enrollment, "Enrolled successfully."));
     }
 
     [HttpDelete("{courseId}")]
@@ -37,7 +37,7 @@ public class EnrollmentsController : ControllerBase
     public async Task<IActionResult> GetMyEnrollments()
     {
         var enrollments = await _service.GetMyEnrollmentsAsync();
-        return Ok(ApiResponse<List<EnrollmentDto>>.Ok(enrollments, "Enrollments retrieved."));
+        return Ok(ApiResponse<List<EnrollmentResponseDto>>.Ok(enrollments, "Enrollments retrieved."));
     }
 
     [HttpGet("instructor")]
@@ -45,6 +45,6 @@ public class EnrollmentsController : ControllerBase
     public async Task<IActionResult> GetInstructorEnrollments()
     {
         var enrollments = await _service.GetEnrollmentsForInstructorAsync();
-        return Ok(ApiResponse<List<EnrollmentDto>>.Ok(enrollments, "Enrollments retrieved."));
+        return Ok(ApiResponse<List<EnrollmentResponseDto>>.Ok(enrollments, "Enrollments retrieved."));
     }
 }

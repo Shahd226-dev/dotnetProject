@@ -2,9 +2,20 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import ToastContainer from "./ToastContainer";
+import { useAuth } from "../context/AuthContext";
 
 const Layout = ({ children }) => {
+  const { isAuthenticated } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="auth-shell">
+        <main className="auth-content">{children}</main>
+        <ToastContainer />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">

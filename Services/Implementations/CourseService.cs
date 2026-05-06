@@ -26,7 +26,11 @@ public class CourseService : ICourseService
                 Id = c.Id,
                 Title = c.Title,
                 Description = c.Description,
-                InstructorId = c.InstructorId
+                Instructor = new InstructorSummaryDto
+                {
+                    Id = c.InstructorId,
+                    FullName = c.Instructor?.FullName ?? string.Empty
+                }
             })
             .ToList();
     }
@@ -43,34 +47,44 @@ public class CourseService : ICourseService
             Id = course.Id,
             Title = course.Title,
             Description = course.Description,
-            InstructorId = course.InstructorId
+            Instructor = new InstructorSummaryDto
+            {
+                Id = course.InstructorId,
+                FullName = course.Instructor?.FullName ?? string.Empty
+            }
         };
     }
 
-    public async Task<CourseResponseDto> CreateAsync(CourseCreateDto dto)
+    public async Task<CourseResponseDto> CreateAsync(CreateCourseDto dto, int? instructorId)
     {
-        var instructorId = await ResolveInstructorIdAsync(dto.InstructorId);
+        var resolvedInstructorId = await ResolveInstructorIdAsync(instructorId);
 
         var course = new Course
         {
             Title = dto.Title.Trim(),
             Description = dto.Description.Trim(),
-            InstructorId = instructorId
+            InstructorId = resolvedInstructorId
         };
 
         await _courseRepository.AddAsync(course);
         await _courseRepository.SaveChangesAsync();
+
+        var instructorDetails = await _instructorRepository.GetByIdAsync(course.InstructorId);
 
         return new CourseResponseDto
         {
             Id = course.Id,
             Title = course.Title,
             Description = course.Description,
-            InstructorId = course.InstructorId
+            Instructor = new InstructorSummaryDto
+            {
+                Id = course.InstructorId,
+                FullName = instructorDetails?.FullName ?? string.Empty
+            }
         };
     }
 
-    public async Task<CourseResponseDto?> UpdateAsync(int id, CourseUpdateDto dto)
+    public async Task<CourseResponseDto?> UpdateAsync(int id, UpdateCourseDto dto, int? instructorId)
     {
         var course = await _courseRepository.GetByIdForUpdateAsync(id);
         if (course == null)
@@ -91,10 +105,14 @@ public class CourseService : ICourseService
         }
         else if (string.Equals(role, RoleConstants.Admin, StringComparison.OrdinalIgnoreCase))
         {
-            var instructorId = await ResolveInstructorIdAsync(dto.InstructorId);
+            if (instructorId.HasValue)
+            {
+                var resolvedInstructorId = await ResolveInstructorIdAsync(instructorId);
+                course.InstructorId = resolvedInstructorId;
+            }
+
             course.Title = dto.Title.Trim();
             course.Description = dto.Description.Trim();
-            course.InstructorId = instructorId;
         }
         else
         {
@@ -103,12 +121,18 @@ public class CourseService : ICourseService
 
         await _courseRepository.SaveChangesAsync();
 
+        var instructorDetails = await _instructorRepository.GetByIdAsync(course.InstructorId);
+
         return new CourseResponseDto
         {
             Id = course.Id,
             Title = course.Title,
             Description = course.Description,
-            InstructorId = course.InstructorId
+            Instructor = new InstructorSummaryDto
+            {
+                Id = course.InstructorId,
+                FullName = instructorDetails?.FullName ?? string.Empty
+            }
         };
     }
 

@@ -26,6 +26,8 @@ public class EnrollmentRepository : IEnrollmentRepository
     {
         return await _context.Enrollments
             .AsNoTracking()
+            .Include(e => e.Course)
+            .Include(e => e.Student)
             .Where(e => e.StudentId == studentId)
             .ToListAsync();
     }
@@ -34,6 +36,8 @@ public class EnrollmentRepository : IEnrollmentRepository
     {
         return await _context.Enrollments
             .AsNoTracking()
+            .Include(e => e.Course)
+            .Include(e => e.Student)
             .Where(e => e.Course.InstructorId == instructorId)
             .ToListAsync();
     }

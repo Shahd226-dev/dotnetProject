@@ -13,6 +13,7 @@ public class CourseRepository : ICourseRepository
     {
         return await _context.Courses
             .AsNoTracking()
+            .Include(c => c.Instructor)
             .ToListAsync();
     }
 
@@ -28,6 +29,7 @@ public class CourseRepository : ICourseRepository
     {
         return await _context.Courses
             .AsNoTracking()
+            .Include(c => c.Instructor)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 

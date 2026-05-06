@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import courseService from "../services/courseService";
+import courseApi from "../api/courseApi";
+import instructorApi from "../api/instructorApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import SkeletonTable from "../components/SkeletonTable";
@@ -7,20 +8,22 @@ import EmptyState from "../components/EmptyState";
 import Modal from "../components/Modal";
 
 const CoursesPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isInstructor } = useAuth();
+  const canManageCourses = isAdmin || isInstructor;
   const { addToast } = useToast();
   const [courses, setCourses] = useState([]);
+  const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ title: "", instructorId: "" });
+  const [form, setForm] = useState({ title: "", description: "", instructorId: "" });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ title: "", instructorId: "" });
+  const [editForm, setEditForm] = useState({ title: "", description: "", instructorId: "" });
 
   const loadCourses = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await courseService.getAll();
+      const response = await courseApi.getAll();
       if (response.success) {
         setCourses(response.data || []);
       } else {
@@ -37,19 +40,36 @@ const CoursesPage = () => {
     loadCourses();
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const loadInstructors = async () => {
+      try {
+        const response = await instructorApi.getAll();
+        if (response.success) {
+          setInstructors(response.data || []);
+        }
+      } catch {
+        // Instructor list is optional for non-admin actions.
+      }
+    };
+
+    loadInstructors();
+  }, [isAdmin]);
+
   const handleCreate = async (event) => {
     event.preventDefault();
     setError("");
 
     try {
-      const response = await courseService.create({
-        title: form.title,
-        instructorId: Number(form.instructorId)
-      });
+      const response = await courseApi.create(
+        { title: form.title, description: form.description },
+        isAdmin ? Number(form.instructorId) : undefined
+      );
       if (response.success) {
         addToast({ type: "success", title: "Course created", message: response.message });
         setCourses((prev) => [...prev, response.data]);
-        setForm({ title: "", instructorId: "" });
+        setForm({ title: "", description: "", instructorId: "" });
         return;
       }
       addToast({
@@ -70,7 +90,8 @@ const CoursesPage = () => {
     setEditingId(course.id);
     setEditForm({
       title: course.title,
-      instructorId: course.instructorId || ""
+      description: course.description || "",
+      instructorId: course.instructor?.id || ""
     });
   };
 
@@ -80,10 +101,11 @@ const CoursesPage = () => {
     setError("");
 
     try {
-      const response = await courseService.update(editingId, {
-        title: editForm.title,
-        instructorId: Number(editForm.instructorId)
-      });
+      const response = await courseApi.update(
+        editingId,
+        { title: editForm.title, description: editForm.description },
+        isAdmin ? Number(editForm.instructorId) : undefined
+      );
       if (response.success) {
         addToast({ type: "success", title: "Course updated", message: response.message });
         setCourses((prev) =>
@@ -113,7 +135,7 @@ const CoursesPage = () => {
         <p className="muted">Create and manage course offerings.</p>
       </div>
 
-      {isAdmin && (
+      {canManageCourses && (
         <div className="card">
           <h3>Create course</h3>
           <form onSubmit={handleCreate} className="form-grid">
@@ -130,21 +152,43 @@ const CoursesPage = () => {
               />
             </div>
             <div className="form-group">
-              <label>Instructor Id</label>
-              <input
-                name="instructorId"
-                type="number"
+              <label>Description</label>
+              <textarea
+                name="description"
                 className="input"
-                value={form.instructorId}
+                rows="3"
+                value={form.description}
                 onChange={(event) =>
                   setForm((prev) => ({
                     ...prev,
-                    instructorId: event.target.value
+                    description: event.target.value
                   }))
                 }
-                required
               />
             </div>
+            {isAdmin && (
+              <div className="form-group">
+                <label>Assign instructor</label>
+                <select
+                  name="instructorId"
+                  className="select"
+                  value={form.instructorId}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      instructorId: event.target.value
+                    }))
+                  }
+                >
+                  <option value="">Select instructor (optional)</option>
+                  {instructors.map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>
+                      {instructor.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="actions">
               <button className="btn btn-primary" type="submit">
                 Create
@@ -164,8 +208,9 @@ const CoursesPage = () => {
               <tr>
                 <th>Id</th>
                 <th>Title</th>
-                <th>Instructor Id</th>
-                {isAdmin && <th>Actions</th>}
+                <th>Description</th>
+                <th>Instructor</th>
+                {(isAdmin || isInstructor) && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -173,8 +218,9 @@ const CoursesPage = () => {
                 <tr key={course.id}>
                   <td>{course.id}</td>
                   <td>{course.title}</td>
-                  <td>{course.instructorId}</td>
-                  {isAdmin && (
+                  <td>{course.description || "-"}</td>
+                  <td>{course.instructor?.fullName || "-"}</td>
+                  {(isAdmin || isInstructor) && (
                     <td>
                       <button
                         className="btn btn-secondary"
@@ -213,21 +259,43 @@ const CoursesPage = () => {
               />
             </div>
             <div className="form-group">
-              <label>Instructor Id</label>
-              <input
-                name="instructorId"
-                type="number"
+              <label>Description</label>
+              <textarea
+                name="description"
                 className="input"
-                value={editForm.instructorId}
+                rows="3"
+                value={editForm.description}
                 onChange={(event) =>
                   setEditForm((prev) => ({
                     ...prev,
-                    instructorId: event.target.value
+                    description: event.target.value
                   }))
                 }
-                required
               />
             </div>
+            {isAdmin && (
+              <div className="form-group">
+                <label>Assign instructor</label>
+                <select
+                  name="instructorId"
+                  className="select"
+                  value={editForm.instructorId}
+                  onChange={(event) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      instructorId: event.target.value
+                    }))
+                  }
+                >
+                  <option value="">Keep current instructor</option>
+                  {instructors.map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>
+                      {instructor.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="actions">
               <button className="btn btn-primary" type="submit">
                 Save changes

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import instructorService from "../services/instructorService";
-import authService from "../services/authService";
+import instructorApi from "../api/instructorApi";
+import authApi from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import SkeletonTable from "../components/SkeletonTable";
@@ -14,15 +14,15 @@ const InstructorsPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ fullName: "", userId: "" });
+  const [form, setForm] = useState({ fullName: "", bio: "", userId: "" });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ fullName: "", userId: "" });
+  const [editForm, setEditForm] = useState({ fullName: "", bio: "" });
 
   const loadInstructors = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await instructorService.getAll();
+      const response = await instructorApi.getAll();
       if (response.success) {
         setInstructors(response.data || []);
       } else {
@@ -47,7 +47,7 @@ const InstructorsPage = () => {
 
   const loadUsers = async () => {
     try {
-      const response = await authService.getUsers();
+      const response = await authApi.getUsers();
       if (response.success) {
         setUsers(response.data || []);
       }
@@ -63,10 +63,10 @@ const InstructorsPage = () => {
     setError("");
 
     try {
-      const response = await instructorService.create({
-        fullName: form.fullName,
-        userId: Number(form.userId)
-      });
+      const response = await instructorApi.create(
+        { fullName: form.fullName, bio: form.bio },
+        Number(form.userId)
+      );
       if (response.success) {
         addToast({
           type: "success",
@@ -74,7 +74,7 @@ const InstructorsPage = () => {
           message: response.message
         });
         setInstructors((prev) => [...prev, response.data]);
-        setForm({ fullName: "", userId: "" });
+        setForm({ fullName: "", bio: "", userId: "" });
         return;
       }
       addToast({
@@ -93,7 +93,7 @@ const InstructorsPage = () => {
 
   const startEdit = (instructor) => {
     setEditingId(instructor.id);
-    setEditForm({ fullName: instructor.fullName, userId: instructor.userId || "" });
+    setEditForm({ fullName: instructor.fullName, bio: instructor.bio || "" });
   };
 
   const handleUpdate = async (event) => {
@@ -102,9 +102,9 @@ const InstructorsPage = () => {
     setError("");
 
     try {
-      const response = await instructorService.update(editingId, {
+      const response = await instructorApi.update(editingId, {
         fullName: editForm.fullName,
-        userId: Number(editForm.userId)
+        bio: editForm.bio
       });
       if (response.success) {
         addToast({
@@ -156,6 +156,18 @@ const InstructorsPage = () => {
               />
             </div>
             <div className="form-group">
+              <label>Bio</label>
+              <textarea
+                name="bio"
+                className="input"
+                rows="3"
+                value={form.bio}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, bio: event.target.value }))
+                }
+              />
+            </div>
+            <div className="form-group">
               <label>Account</label>
               <select
                 name="userId"
@@ -193,6 +205,7 @@ const InstructorsPage = () => {
               <tr>
                 <th>Id</th>
                 <th>Full name</th>
+                <th>Bio</th>
                 {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
@@ -201,6 +214,7 @@ const InstructorsPage = () => {
                 <tr key={instructor.id}>
                   <td>{instructor.id}</td>
                   <td>{instructor.fullName}</td>
+                  <td>{instructor.bio || "-"}</td>
                   {isAdmin && (
                     <td>
                       <button
@@ -240,23 +254,16 @@ const InstructorsPage = () => {
               />
             </div>
             <div className="form-group">
-              <label>Account</label>
-              <select
-                name="userId"
-                className="select"
-                value={editForm.userId}
+              <label>Bio</label>
+              <textarea
+                name="bio"
+                className="input"
+                rows="3"
+                value={editForm.bio}
                 onChange={(event) =>
-                  setEditForm((prev) => ({ ...prev, userId: event.target.value }))
+                  setEditForm((prev) => ({ ...prev, bio: event.target.value }))
                 }
-                required
-              >
-                <option value="">Select an instructor account</option>
-                {instructorUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.username} ({user.email})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="actions">
               <button className="btn btn-primary" type="submit">
